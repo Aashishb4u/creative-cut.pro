@@ -1374,12 +1374,12 @@ function drawAdd(variant) {
       ${c ? "" : picker("o_creator", "File under creator", [{v:"", label:"No creator", icon:"user"}, ...S.creators.map(x => ({v:x.id, label:x.name, img:x.profile?.pic && x.profile.channel === x.channel ? avatarUrl(x) : ""}))], "")}
       ${picker("o_niche", "Type of video", [{v:"auto", label:"Auto-detect type", icon:"bolt"}, {v:"gaming", label:"Gaming and streams", icon:"play"}, {v:"podcast", label:"Podcast or interview", icon:"chat"}, {v:"education", label:"Education and how-to", icon:"bulb"}, {v:"business", label:"Business and money", icon:"money"}, {v:"comedy", label:"Comedy", icon:"eye"}, {v:"lifestyle", label:"Vlog and lifestyle", icon:"video"}], c?.niche ?? "auto")}
       <button type="button" class="chip" data-act="toggleopts" aria-expanded="false">${ic("sliders")}Options</button>
-      <span class="grow"></span>
+      <span class="grow"></span>${planHint()}
       <button class="btn primary" id="goBtn">${ic("scissors")}Make clips</button>
     </div>
     <div class="composer-opts" inert><div class="og">
       <div class="ob wide"><div class="ot">Clips</div><div class="nsteps">
-        ${stepper("o_max", "How many", c?.max_clips ?? 6, 1, 20, 1, "")}
+        ${stepper("o_max", "How many", Math.min(c?.max_clips ?? perVideo(), perVideo()), 1, perVideo(), 1, "")}
         ${stepper("o_min", "Shortest", c?.min_len ?? 15, 5, 120, 5, "s")}
         ${stepper("o_maxlen", "Longest", c?.max_len ?? 60, 10, 180, 5, "s")}
       </div></div>
@@ -1560,6 +1560,15 @@ async function makeClips() {
     toast("Finding the video first. Clipping starts as soon as it's found.");
     return;
   }
+  if (S.jobs.some(j => j.kind === "video" && ["queued", "running"].includes(j.status))) {
+    toast("A video is still being clipped. Wait for it to finish, or cancel it, then add the next one.", "bad");
+    return;
+  }
+  try { S.status = await api("/api/status"); } catch {}          // the free-video count may have moved since the page loaded
+  const pl = S.status.plan;
+  if (pl?.videos_limit != null && pl.videos_used >= pl.videos_limit) {
+    return ask("Free videos used", `You have made clips from ${pl.videos_limit} videos, the free limit. A paid plan with more videos is coming soon.`, "Got it");
+  }
   if (!canGo(A)) {
     toast(A.note || "Paste a YouTube, Twitch or Kick video link first.", "bad");
     $("#url")?.focus();
@@ -1650,14 +1659,30 @@ function jobHtml(j) {
                 j.took ? "made in " + fmt(j.took) : "", j.kind === "live" ? "recording, " + j.stage.toLowerCase() : ""].filter(Boolean).map(esc).join(" · ");
   const pic = j.thumb ? `<img src="/media/${esc(j.id)}/thumb.jpg" alt="" loading="lazy">` : ic(j.source?.type === "file" ? "film" : "link");
   return `<div class="job-head"><div class="jt"><span class="jthumb">${pic}${j.duration ? `<span class="du">${fmt(j.duration)}</span>` : ""}</span><div style="min-width:0"><h3>${esc(j.title || j.source.name)}</h3><p class="sub">${meta}</p></div></div>
-      <div class="row" style="flex-wrap:nowrap;gap:4px">${busy ? "" : `
+      <div class="row" style="flex-wrap:nowrap;gap:4px">${busy ? (j.kind === "video" ? `<button class="btn sm ghost" data-act="canceljob" data-j="${j.id}">${ic("x")}Cancel</button>` : "") : `
         ${j.clips.some(c => c.status === "done") ? `<button class="btn sm icon ghost" data-act="dlall" data-j="${j.id}" title="Download all clips of this video" aria-label="Download all clips of this video">${ic("down")}</button>` : ""}
         <button class="btn sm icon ghost" data-act="deljob" data-j="${j.id}" title="Delete" aria-label="Delete this video and its clips">${ic("trash")}</button>
         <label class="selck" title="Select this video and its clips"><input type="checkbox" data-sel="j:${j.id}" ${sel().has("j:" + j.id) ? "checked" : ""} aria-label="Select this video"></label>`}</div></div>
     ${busy ? `<div class="bar"><i style="width:${Math.round(j.progress * 100)}%"></i></div><p class="sub">${esc(j.stage)} · ${Math.round(j.progress * 100)}%</p>` : ""}
     ${j.status === "done" && !j.clips.length ? `<p class="sub">${esc(j.stage)}</p>` : ""}
+    ${j.status === "cancelled" ? `<p class="sub">Cancelled. Delete it, or add a new video.</p>` : ""}
     ${j.error ? `<div class="err">${esc(j.error)}<button class="rep" data-act="report" data-ctx="${esc("Video failed: " + (j.title || j.source.name || "") + " | " + j.error)}">Report this</button></div>` : ""}${j.ai?.note ? `<p class="sub">${esc(j.ai.note)}</p>` : ""}
-    ${j.clips.length ? `<div class="grid">${j.clips.map(c => clipHtml(j, c)).join("")}</div>` : ""}`;
+    ${j.clips.length ? `<div class="grid">${j.clips.map(c => clipHtml(j, c)).join("")}</div>` : ""}
+    ${j.status === "done" && j.kind === "video" && j.clips.length ? `<div class="row" style="margin-top:12px"><button class="btn sm" data-act="moreclips">${ic("plus")}Create more clips</button></div>` : ""}`;
+}
+const perVideo = () => S.status?.plan?.clips_per_video || 3;
+const remakesLeft = c => { const m = S.status?.plan?.remakes_limit; return m == null ? null : Math.max(0, m - (c.remakes || 0)); };
+function remakeHint(c) {
+  const left = remakesLeft(c);
+  if (left == null) return "";
+  return left > 0 ? `<p class="sub">${left} free re-make left for this clip.</p>`
+                  : `<p class="sub">This clip has used its free re-make. A paid plan with more is coming soon.</p>`;
+}
+function planHint() {
+  const pl = S.status?.plan;
+  if (!pl || pl.videos_limit == null) return "";
+  const left = Math.max(0, pl.videos_limit - pl.videos_used);
+  return `<span class="hint">${left} of ${pl.videos_limit} free videos left</span>`;
 }
 /* ---- selecting several videos and clips: delete or download them together */
 const sel = () => (S.sel = S.sel || new Set());
@@ -1775,7 +1800,7 @@ function drawCreatorForm() {
         <label class="f">Layout<select data-k="layout">${opts(S.status.layouts, c.layout)}</select></label>
         <label class="f">Shortest clip (seconds)<input data-k="min_len" type="number" value="${c.min_len}"></label>
         <label class="f">Longest clip (seconds)<input data-k="max_len" type="number" value="${c.max_len}"></label>
-        <label class="f">Clips per video<input data-k="max_clips" type="number" value="${c.max_clips}"></label>
+        <label class="f">Clips per video<input data-k="max_clips" type="number" min="1" max="${perVideo()}" value="${Math.min(c.max_clips, perVideo())}"></label>
         <label class="f">Minutes of live stream to keep<input data-k="buffer_min" type="number" value="${c.buffer_min}"></label></div></div>
     <div class="card"><h2>Posting</h2><p class="help">${A.length ? "Choose the accounts this creator's clips go to. One account can be shared by several creators." : "No accounts are connected yet. Connect one in Settings, then come back."}</p>
       ${A.length ? `<div class="row" style="margin-bottom:16px">${A.map(a => `<label class="ck"><input type="checkbox" data-acc value="${esc(a.id)}" ${c.accounts.includes(a.id) ? "checked" : ""}>${esc(a.label)} · ${esc(a.name)}</label>`).join("")}</div>` : `<button class="btn" data-act="go" data-v="settings" style="margin-bottom:16px">${ic("cog")}Open Settings</button>`}
@@ -2045,7 +2070,8 @@ function drawClipDlg(full) {
         <h3>Post text</h3>
         <label class="f">Title<input data-f="title" value="${esc(c.title)}"></label>
         <label class="f">Description<textarea data-f="description" rows="2">${esc(c.description)}</textarea></label>
-        <button class="btn" data-act="remake">${ic("scissors")}Save and re-make clip</button>
+        <button class="btn" data-act="remake" ${remakesLeft(c) === 0 ? "disabled" : ""}>${ic("scissors")}Save and re-make clip</button>
+        ${remakeHint(c)}
         <h3>Post it</h3>
         <div id="dposts" class="row" style="gap:4px"></div>
         ${S.accounts.length ? `<div class="row">${S.accounts.map(a => `<label class="ck"><input type="checkbox" data-pacc value="${esc(a.id)}">${esc(a.label)} · ${esc(a.name)}</label>`).join("")}</div>
@@ -2255,6 +2281,15 @@ document.addEventListener("click", async e => {
       if (!typed) return;
       await send("/api/account/delete", {confirm: typed});
       location.href = "/"; return;
+    }
+    if (a === "canceljob") {
+      if (!await ask("Cancel this video?", "Clipping stops and nothing more is made from it. You can add a new video straight away.", "Cancel video", true)) return;
+      await send(`/api/jobs/${d.j}/cancel`, {});
+      toast("Cancelled. You can add the next video now.", "ok");
+      return tick();
+    }
+    if (a === "moreclips") {
+      return ask("More clips from this video", `Free accounts get ${perVideo()} clips from each video. A paid plan with more clips is coming soon.`, "Got it");
     }
     if (a === "deljob") {
       if (!await ask("Delete this video?", "The video and all of its clips are permanently deleted. This cannot be undone.", "Delete", true)) return;

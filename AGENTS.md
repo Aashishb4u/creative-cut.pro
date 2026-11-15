@@ -48,6 +48,8 @@ A short map for contributors and AI coding assistants.
   address or a personal path into a tracked file.
 - **Pages** are plain HTML, CSS and JavaScript. The look is the blue SaaS style: blue `#2563EB` to `#59A4FF` gradient,
   navy `#0B1D4D` text, soft light-blue cards, Montserrat. Shadows are soft and blue-tinted only; hover states change colour.
+- **Free plan** (`plan.py`): `CREATIVECUT_FREE_VIDEOS` finished videos per account (default 5) and `CREATIVECUT_CLIPS_PER_VIDEO`
+  clips per video (default 3). One video at a time per person; `jobs.cancel` stops one at its next step (`_set` raises `Cancelled`).
 - **Space is limited per person** (`storage.py`, `CREATIVECUT_MAX_USER_MB`, 100 by default): over it, their oldest finished videos
   are deleted, never one still being made, recorded, with a post waiting, or just finished.
 - **YouTube access**: `media.ytdl_extra` adds the cookies file (a private copy) and proxy for YouTube links only;

@@ -169,14 +169,36 @@ def youtube_words(url: str):
     with _youtube_guard(url), _ydl({}) as ydl:
         i = ydl.extract_info(url, download=False)
         auto = i.get("automatic_captions") or {}
-        key = next((k for k in auto if k.endswith("-orig")), None)
-        if not key and i.get("language") in auto:
-            key = i["language"]
+        key = _spoken_track(i, auto)
         track = next((f for f in auto.get(key) or [] if f.get("ext") == "json3" and f.get("url")), None) if key else None
         if not track:
             return None
         raw = ydl.urlopen(track["url"]).read(40_000_000)
     return _caption_words(json.loads(raw)), key.replace("-orig", "")
+
+
+def _spoken_track(info: dict, auto: dict):
+    """Which of YouTube's automatic transcripts matches the words in the audio we download. A video can carry
+    several audio tracks (an original and dubs), each with its own transcript ("hi-orig", "bn-orig"); the one to use
+    is the video's own language, then the default audio track's, never simply the first in the list."""
+    orig = [k for k in auto if k.endswith("-orig")]
+    want = []
+    if info.get("language"):
+        want.append(str(info["language"]))
+    for f in info.get("formats") or []:
+        note = str(f.get("format_note") or "").lower()
+        if f.get("language") and ("default" in note or "original" in note):
+            want.append(str(f["language"]))
+    for lang in want:
+        for k in (f"{lang}-orig", f"{lang.split('-')[0]}-orig"):
+            if k in auto:
+                return k
+    if len(orig) == 1:
+        return orig[0]
+    if orig:
+        return None                         # several spoken languages and no way to tell which is ours: use our own
+    lang = info.get("language")
+    return lang if lang in auto else None
 
 
 def youtube_english_words(url: str):
@@ -291,15 +313,17 @@ def download_audio(url: str, job_dir: Path, on_progress=None) -> Path:
     return _biggest(job_dir, "audio_src")
 
 
-def download(url: str, job_dir: Path, height=720) -> Path:
-    """The whole video. Used for shorter videos, where this is quicker than fetching pieces."""
+def download(url: str, job_dir: Path, height=720, on_progress=None) -> Path:
+    """The whole video. Used for shorter videos, where this is quicker than fetching pieces. on_progress is called as
+    it goes; raising from it stops the download (that is how a cancelled video stops)."""
+    hooks = [lambda d: on_progress(d)] if on_progress else []
     with _youtube_guard(url), _ydl({"format": _video_format(height), "merge_output_format": "mp4",
-                                    "outtmpl": str(job_dir / "source.%(ext)s")}) as ydl:
+                                    "outtmpl": str(job_dir / "source.%(ext)s"), "progress_hooks": hooks}) as ydl:
         ydl.download([url])
     return _biggest(job_dir, "source")
 
 
-def download_section(url: str, out_dir: Path, stem: str, start: float, end: float, height=720, exact=False) -> Path:
+def download_section(url: str, out_dir: Path, stem: str, start: float, end: float, height=720, exact=False, on_progress=None) -> Path:
     """Just one stretch of the video. Normally the cut lands on a keyframe, so find_offset() pins the true start.
     With exact=True the cut is made at the very second asked for, which is what we need when the rest of the video
     has already been deleted and there is nothing left to compare the piece with."""
@@ -308,6 +332,7 @@ def download_section(url: str, out_dir: Path, stem: str, start: float, end: floa
     with _youtube_guard(url), _ydl({"format": _video_format(height), "merge_output_format": "mp4",
                "outtmpl": str(out_dir / (stem + ".%(ext)s")),
                "force_keyframes_at_cuts": bool(exact),
+               "progress_hooks": [lambda d: on_progress(d)] if on_progress else [],
                "download_ranges": download_range_func(None, [(max(0.0, start), end)])}) as ydl:
         ydl.download([url])
     return _biggest(out_dir, stem)

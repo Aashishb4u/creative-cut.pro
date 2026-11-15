@@ -1,4 +1,4 @@
-"""Few limits by default on your own Creative Cut: many recordings at once (each kept with its own creator), five videos
+"""Few limits by default on your own Creative Cut: many recordings at once (each kept with its own creator), one video
 at once, any number of creators. Runs against the code directly, with its own empty data folder."""
 import os, sys, tempfile
 os.environ["CREATIVECUT_DATA"] = tempfile.mkdtemp(prefix="pc-lim-")
@@ -14,7 +14,7 @@ def check(n, got, want=True):
     ok = want(got) if callable(want) else got == want
     print(("PASS " if ok else "FAIL ") + n + ("" if ok else f"   got {got!r}")); ok or fails.append(n)
 
-check("five videos at once", config.MAX_ACTIVE_JOBS_PER_USER, 5)
+check("one video at a time", config.MAX_ACTIVE_JOBS_PER_USER, 1)
 check("no cap on recordings, video length, recording length or creators",
       all(x >= 10 ** 6 for x in (config.MAX_LIVE_PER_USER, config.MAX_VIDEO_HOURS, config.MAX_LIVE_HOURS, config.MAX_CREATORS)))
 check("each account has 100 MB for its clips", config.MAX_USER_MB, 100)

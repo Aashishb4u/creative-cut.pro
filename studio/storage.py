@@ -3,6 +3,7 @@ deleted to make room, newest kept, so nobody can fill the server for free.
 
 What is never deleted here: a video still being made, a stream still being recorded, a video that has a post
 waiting to go out, and the video that was just finished (that is the one the person is about to look at)."""
+import fnmatch
 import os
 import time
 
@@ -16,11 +17,17 @@ def limit_bytes() -> float:
     return config.MAX_USER_MB * _MB
 
 
+TEMPORARY = ("source.*", "audio_src.*", "*.src.*", "*.again.*", "*.wav", "*.part", "*.ytdl", "*.tmp")
+
+
 def used(uid: str) -> int:
-    """Bytes in this person's folder (videos, clips, settings), counted fresh."""
+    """Bytes this person keeps (clips, covers, settings), counted fresh. The video a job is still working on is a
+    temporary download that is deleted when its clips are cut, so it does not count against their space."""
     total = 0
     for root, _dirs, files in os.walk(config.user_dir(uid)):
         for f in files:
+            if any(fnmatch.fnmatch(f, p) for p in TEMPORARY):
+                continue
             try:
                 total += os.path.getsize(os.path.join(root, f))
             except OSError:

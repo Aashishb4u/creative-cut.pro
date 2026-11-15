@@ -104,7 +104,10 @@ def _limit(name: str, default: str = "0"):
 # The most videos that may ever run at once. How many actually run is decided by how busy the machine is (load.py).
 VISUAL = env("CREATIVECUT_VISUAL", "1") != "0"      # look at the picture of each clip (movement, cuts) as well as the sound
 JOB_WORKERS = int(env("CREATIVECUT_JOB_WORKERS") or max(2, os.cpu_count() or 4))
-MAX_ACTIVE_JOBS_PER_USER = int(_limit("CREATIVECUT_MAX_JOBS_PER_USER", "5"))    # videos sent and worked on at once
+MAX_ACTIVE_JOBS_PER_USER = int(_limit("CREATIVECUT_MAX_JOBS_PER_USER", "1"))    # videos worked on at once: one, so the next waits for this one
+CLIPS_PER_VIDEO = max(1, int(env("CREATIVECUT_CLIPS_PER_VIDEO") or 3))         # clips made from one video (plan.py)
+FREE_VIDEOS = _limit("CREATIVECUT_FREE_VIDEOS", "5")                            # videos a free account may clip in all; 0 = no limit
+FREE_REMAKES = _limit("CREATIVECUT_FREE_REMAKES", "1")                          # times a free account may re-make one clip after changing it; 0 = no limit
 MAX_LIVE_TOTAL = int(env("CREATIVECUT_MAX_LIVE") or max(4, 2 * (os.cpu_count() or 4)))   # ceiling; real load decides below it
 MAX_LIVE_PER_USER = int(_limit("CREATIVECUT_MAX_LIVE_PER_USER"))     # streams one person records at once
 MAX_VIDEO_HOURS = _limit("CREATIVECUT_MAX_VIDEO_HOURS")              # longest video (or chosen part of one) that is processed

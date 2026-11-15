@@ -21,7 +21,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 from . import admin as admins
 from . import account, load
 from . import (accounts, ai, alerts, auth, config, creators, ctx, db, jobs, live, media, posting,
-               profiles, render, safe, storage, transcribe, usage, ytupdate)
+               plan, profiles, render, safe, storage, transcribe, usage, ytupdate)
 
 app = FastAPI(title="Creative Cut", docs_url=None, redoc_url=None, openapi_url=None)
 WEB = config.ROOT / "web"
@@ -536,6 +536,7 @@ def status(request: Request):
     return {"user": auth.public(me_), "update": updates.latest() if me_.is_admin else None, "accounts": config.ACCOUNTS, "links": {"repo": config.REPO_URL, "follow": config.FOLLOW_URL}, "ai": usage.brief(), "storage": storage.info(ctx.uid()), "unread": notices.unread(),
             "tour": not accounts.settings()["tour_done"],
             "youtube": accounts.youtube_ready(), "connect": {p: accounts.can_connect(p) for p in accounts.PLATFORM_NAMES}, "max_batch": config.MAX_ACTIVE_JOBS_PER_USER,
+            "plan": plan.info(me_.id, me_),
             "styles": {k: v["label"] for k, v in render.STYLES.items()}, "layouts": render.LAYOUTS}
 
 
@@ -549,7 +550,16 @@ def _job_or_404(jid: str):
 
 def _job_slots():
     if jobs.busy_count() >= config.MAX_ACTIVE_JOBS_PER_USER:
+        if config.MAX_ACTIVE_JOBS_PER_USER == 1:
+            raise HTTPException(429, "A video is still being clipped. Wait for it to finish, or cancel it, then add the next one.")
         raise HTTPException(429, f"You already have {config.MAX_ACTIVE_JOBS_PER_USER} videos in progress. Wait for one to finish.")
+
+
+def _plan_allows():
+    """A free account clips a set number of videos (CREATIVECUT_FREE_VIDEOS). After that, the paid plan."""
+    left = plan.videos_left(ctx.uid(), auth.get_user(ctx.uid()))
+    if left == 0:
+        raise HTTPException(402, f"You have used your {int(config.FREE_VIDEOS)} free videos. A paid plan with more is coming soon.")
 
 
 _create_lock = threading.Lock()      # "do I have a free slot?" and "take it" happen together, so bursts cannot slip past the limit
@@ -649,6 +659,7 @@ def link_preview(request: Request, url: str = ""):
 @app.post("/api/jobs")
 def create_from_link(body: dict = Body(...)):
     _need_verified()
+    _plan_allows()
     _quota()
     _throttle("newjob:" + ctx.uid(), 30, 600)
     url = str(body.get("url", "")).strip()[:500]
@@ -685,11 +696,21 @@ def rerender(jid: str, cid: str, body: dict = Body(...)):
     if job["status"] in ("queued", "running") or clip.get("status") in ("queued", "rendering"):
         raise HTTPException(409, "This clip is still being made. Try again when it has finished.")
     _throttle("render:" + ctx.uid(), 20, 600, "That's a lot of re-makes in a short time. Wait a few minutes.")
+    if plan.remakes_left(clip, auth.get_user(ctx.uid())) == 0:
+        raise HTTPException(402, f"This clip has been re-made {int(config.FREE_REMAKES)} time{'s' if config.FREE_REMAKES != 1 else ''}, the free limit. A paid plan with more re-makes is coming soon.")
     try:
         jobs.request_render(jid, cid, body)
     except (ValueError, TypeError) as e:
         raise HTTPException(400, str(e))
     return jobs.public(job)
+
+
+@app.post("/api/jobs/{jid}/cancel")
+def cancel_job(jid: str):
+    _job_or_404(jid)
+    if not jobs.cancel(jid):
+        raise HTTPException(409, "This video is not being made, so there is nothing to cancel.")
+    return {"ok": True}
 
 
 @app.delete("/api/jobs/{jid}")
