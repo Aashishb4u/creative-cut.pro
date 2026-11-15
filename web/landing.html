@@ -302,27 +302,24 @@ footer.site{border-top:1px solid var(--line2);padding:56px 0 30px;background:rgb
 .m-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--red),var(--red-hi));transition:width 1.8s var(--ease)}
 .tl .step.on .m-bar i{width:100%}
 .m-result{grid-template-columns:110px 1fr;align-items:center}
-
 .m-clip {
-  position: relative;
-  overflow: hidden;
-  border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
 }
 
-.m-clip video {
-  display: block;
-  width: 100%;
-  height: 100%;
-  aspect-ratio: 9 / 16;
-  object-fit: cover;
-  background: #000;
+.frame-slot {
+    width: 100%;
+    aspect-ratio: 9 / 16;
+    overflow: hidden;
+    background: #000;
 }
 
-.m-clip b {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 2;
+.frame-slot video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
 .m-clip span {
@@ -432,17 +429,10 @@ footer.site{border-top:1px solid var(--line2);padding:56px 0 30px;background:rgb
 
   <div class="tl-mock m-result" aria-hidden="true">
     <div class="m-clip">
-      <!-- <b>WAIT FOR IT</b> -->
-
-      <video
-        src="/clips/hero_clips_1.mp4"
-        controls
-        muted
-        playsinline
-        preload="metadata"
-      ></video>
-
-      <!-- <span>Score 94</span> -->
+      <div
+          class="frame-slot"
+          data-video="/clips/hero_clips_1.mp4">
+      </div>
     </div>
 
     <div class="m-acts">
