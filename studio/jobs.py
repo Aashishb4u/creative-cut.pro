@@ -481,10 +481,10 @@ def _drop_source(job):
     """Creative Cut does not keep anyone's video. The moment every clip is cut, the downloaded video (and any piece
     fetched for a single clip) is deleted and only the finished clips stay. Changing a clip later fetches the
     little stretch it needs again (see _fetch_again). A live recording is not touched here: live.py owns it."""
-    if (job.get("source") or {}).get("type") != "url":
+    if (job.get("source") or {}).get("type") not in ("url", "file"):     # "file": one the person uploaded because its link would not download
         return
     d = Path(job["dir"])
-    names = [job.get("source_path")] + [c.get("src") for c in job["clips"]]
+    names = [job.get("source_path"), (job.get("source") or {}).get("path")] + [c.get("src") for c in job["clips"]]
     for n in names:
         if n and Path(n).parent in (d, d / "clips"):
             Path(n).unlink(missing_ok=True)
@@ -564,7 +564,7 @@ def _run_job(job):
             _set(job, thumb=True)
         usage.set_context(job["creator"], meta["title"])
         span = (o["range_end"] or meta["duration"]) - (o["range_start"] or 0)
-        pieces = (span > LONG_VIDEO or meta["duration"] <= 0) and not media.apify_on(src["url"])   # the actor gives the whole video
+        pieces = (span > LONG_VIDEO or meta["duration"] <= 0)
         if not pieces:  # shorter video: fetch all of it in the background while the audio is worked on
             video = fetch.submit(media.download, src["url"], d, int(o["quality"]), lambda p: _check(job))
         audio_file = media.download_audio(src["url"], d, lambda p: _set(job, progress=0.03 + 0.1 * p))

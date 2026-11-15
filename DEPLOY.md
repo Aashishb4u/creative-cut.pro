@@ -100,13 +100,12 @@ Three things fix most "confirm you're not a bot" errors. Use them in this order.
      `CREATIVECUT_YT_COOKIES=/secrets/youtube-cookies.txt` to `.env`. Run `docker compose up -d`.
    - Cookies expire after weeks or months. When downloads start failing again, export a fresh file.
    - The file is read only: each download works on a private copy that is deleted afterwards.
-3. **Get YouTube videos through Apify** (the way that works on a server). Make an account at apify.com, open
-   Settings, Integrations, and create an API token. Add
-   `CREATIVECUT_APIFY_TOKEN=apify_api_...` to `.env` (never commit `.env`), then `docker compose up -d`. From then on YouTube
-   links are downloaded by the Apify actor `marielise.dev/youtube-video-downloader`, and Creative Cut deletes the video
-   as soon as its clips are cut. Apify bills per started minute of video, so set `CREATIVECUT_APIFY_MAX_MIN` (90 by
-   default) to the longest video you will pay for; it also caps what one video can cost. Twitch and Kick downloads do
-   not use it, and neither do any of the settings above when a token is set.
+3. **Uploads when a link still fails.** The page then tells the person to download the video themselves and upload it.
+   The upload is sent in pieces of `CREATIVECUT_UPLOAD_CHUNK_MB` (40) so no single request is big, a piece that fails is
+   sent again alone, and `CREATIVECUT_MAX_UPLOAD_MB` (500) is the most the whole video may be. If you use your own nginx,
+   allow one piece or uploads stop with "413": add `client_max_body_size 50m;` inside the `server { }` block of the site,
+   then `nginx -t && systemctl reload nginx`. This is also under Cloudflare's 100 MB limit. The uploaded file is deleted as
+   soon as the clips are cut.
 
 ## Cloudflare CDN in front
 

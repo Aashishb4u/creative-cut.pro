@@ -20,7 +20,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 
 from . import admin as admins
 from . import account, load
-from . import (accounts, ai, alerts, auth, config, creators, ctx, db, jobs, live, media, posting,
+from . import (accounts, ai, alerts, auth, cleanup, config, creators, ctx, db, jobs, live, media, posting,
                plan, profiles, render, safe, storage, transcribe, usage, ytupdate)
 
 app = FastAPI(title="Creative Cut", docs_url=None, redoc_url=None, openapi_url=None)
@@ -51,6 +51,7 @@ def _startup():
     live.start()
     posting.start()
     ytupdate.start()
+    cleanup.start()
 
 
 # ================================================================ the gate: who is asking, and are they allowed
@@ -79,6 +80,8 @@ class Gate:
             # Every request is a small form, and is cut off at 256 KB whatever its headers claim, so nobody can
             # fill the server's memory by posting junk (signed in or not).
             cap = 256 * 1024
+            if method == "POST" and re.fullmatch(r"/api/jobs/[\w\-]{8,60}/upload", path):
+                cap = (config.UPLOAD_CHUNK_MB + 8) * 1024 * 1024     # one piece of a video; the route checks the whole again as it saves
             try:
                 if int(req.headers.get("content-length") or 0) > cap:
                     return await deny(413, "That request is too large.")
@@ -538,7 +541,7 @@ def status(request: Request):
     return {"user": auth.public(me_), "update": updates.latest() if me_.is_admin else None, "accounts": config.ACCOUNTS, "links": {"repo": config.REPO_URL, "follow": config.FOLLOW_URL}, "ai": usage.brief(), "storage": storage.info(ctx.uid()), "unread": notices.unread(),
             "tour": not accounts.settings()["tour_done"],
             "youtube": accounts.youtube_ready(), "connect": {p: accounts.can_connect(p) for p in accounts.PLATFORM_NAMES}, "max_batch": config.MAX_ACTIVE_JOBS_PER_USER,
-            "plan": plan.info(me_.id, me_),
+            "plan": plan.info(me_.id, me_), "max_upload_mb": config.MAX_UPLOAD_MB, "upload_chunk_mb": config.UPLOAD_CHUNK_MB,
             "styles": {k: v["label"] for k, v in render.STYLES.items()}, "layouts": render.LAYOUTS}
 
 
@@ -656,6 +659,105 @@ def link_preview(request: Request, url: str = ""):
         raise
     except Exception:
         raise HTTPException(422, "Couldn't open that video. Check the link is public and complete.")
+
+
+UPLOAD_TYPES = (".mp4", ".mov", ".mkv", ".webm", ".m4v")
+
+
+def _upload_job(jid: str):
+    """The video this upload is for: the person's own, failed on a link. Same checks for every piece."""
+    job = _job_or_404(jid)
+    if job["status"] != "error" or (job.get("source") or {}).get("type") != "url":
+        raise HTTPException(400, "This video did not fail on its link, so there is nothing to replace.")
+    return job
+
+
+def _upload_ext(request: Request) -> tuple:
+    import urllib.parse
+    name = urllib.parse.unquote(request.headers.get("x-filename", ""))[:200]
+    ext = Path(name).suffix.lower()
+    if ext not in UPLOAD_TYPES:
+        raise HTTPException(400, "Upload an MP4, MOV, MKV or WEBM video.")
+    return name, ext
+
+
+@app.post("/api/jobs/{jid}/upload")
+async def upload_piece(jid: str, request: Request):
+    """One piece of an upload. When a link could not be downloaded, the person downloads the video themselves and the
+    page sends it here in pieces of CREATIVECUT_UPLOAD_CHUNK_MB (40 MB), one request each, so no single request is big
+    (web servers and CDNs limit that), and a piece that fails is sent again alone instead of starting over. The piece
+    is the raw body; X-Offset says where in the file it begins and must be exactly what has been received so far.
+    Answers how much has been received, so the page can carry on from there."""
+    from starlette.concurrency import run_in_threadpool
+    job = _upload_job(jid)
+    _need_verified()
+    _plan_allows()
+    name, ext = _upload_ext(request)
+    try:
+        offset = int(request.headers.get("x-offset") or 0)
+    except ValueError:
+        raise HTTPException(400, "Bad request.")
+    part = Path(job["dir"]) / "upload.part"
+    have = part.stat().st_size if part.is_file() else 0
+    if offset == 0:
+        _quota()
+        _throttle("upload:" + ctx.uid(), 10, 600)
+        _job_slots()
+        part.unlink(missing_ok=True)
+        have = 0
+    if offset > have:
+        return JSONResponse({"detail": "A piece is missing. Starting that part again.", "received": have}, 409)
+    cap = config.MAX_UPLOAD_MB * 1024 * 1024
+    n = 0
+    try:
+        with part.open("r+b" if part.is_file() else "wb") as f:
+            f.truncate(offset)                    # a piece sent again replaces what an interrupted try left
+            f.seek(offset)
+            async for chunk in request.stream():
+                n += len(chunk)
+                if offset + n > cap:
+                    raise HTTPException(413, f"That video is bigger than {config.MAX_UPLOAD_MB} MB.")
+                await run_in_threadpool(f.write, chunk)
+    except BaseException:
+        if offset == 0:
+            part.unlink(missing_ok=True)
+        raise
+    return {"received": offset + n}
+
+
+@app.post("/api/jobs/{jid}/upload/finish")
+async def upload_finish(jid: str, request: Request):
+    """All pieces are in: check the file is a real video with sound, then start the same video again from it. The file
+    is deleted once its clips are cut, like any other video (jobs._drop_source)."""
+    from starlette.concurrency import run_in_threadpool
+    job = _upload_job(jid)
+    _need_verified()
+    _plan_allows()
+    name, ext = _upload_ext(request)
+    part = Path(job["dir"]) / "upload.part"
+    if not part.is_file() or part.stat().st_size < 1024:
+        part.unlink(missing_ok=True)
+        raise HTTPException(400, "Nothing was uploaded, or the file is empty.")
+    dest = Path(job["dir"]) / f"upload{ext}"
+    try:
+        part.replace(dest)
+        try:
+            info = await run_in_threadpool(media.probe, dest)
+        except Exception:  # noqa: BLE001 - not a video, no sound, or too large a picture
+            raise HTTPException(400, "That file could not be read as a video with sound. Download it again as MP4.")
+        if info["duration"] > config.MAX_VIDEO_HOURS * 3600:
+            raise HTTPException(400, f"That video is longer than {config.MAX_VIDEO_HOURS:g} hours, which is the limit.")
+    except BaseException:
+        dest.unlink(missing_ok=True)
+        raise
+    with _create_lock:
+        _job_slots()
+        link = (job.get("source") or {}).get("url", "")
+        job["source"] = {"type": "file", "path": str(dest), "name": job.get("title") or name, "from_url": link}
+        job.update(status="queued", stage="Waiting", progress=0.0, error=None, clips=[], ai={}, cancel=False)
+        jobs.enqueue(job)
+    ctx.bump()
+    return {"ok": True}
 
 
 @app.post("/api/jobs")

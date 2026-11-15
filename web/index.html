@@ -609,6 +609,8 @@ dialog::backdrop{background:rgba(8,21,56,.42);animation:fadein .16s ease}
 .toast.ok::before{background:#3DDC97}.toast.bad::before{background:#FF6B78}
 .toast .rep{margin-left:auto;border:0;background:rgba(255,255,255,.1);color:#fff;font:inherit;font-size:12px;font-weight:600;padding:3px 9px;border-radius:6px;cursor:pointer;white-space:nowrap}
 .toast .rep:hover{background:rgba(255,255,255,.18)}
+.uphelp{margin:10px 0 4px;padding:12px 14px;border:1px solid var(--c-border);border-radius:12px;background:var(--c-surface-2);font-size:13px;color:var(--c-text-dim)}
+.uphelp b{color:var(--c-text)}.uphelp ol{margin:8px 0 10px;padding-left:20px}.uphelp li{margin:3px 0}.uphelp a{color:var(--c-tint-2)}.uphelp a:hover{color:var(--c-text)}
 .err .rep{margin-left:8px;border:0;background:transparent;color:inherit;font:inherit;font-weight:600;text-decoration:underline;cursor:pointer;padding:0}
 
 .ntoast{display:flex;gap:12px;align-items:flex-start;width:340px;max-width:calc(100vw - 40px);padding:12px 12px 12px 12px;border-radius:12px;background:var(--panel);border:1px solid var(--line);color:var(--text);cursor:pointer;text-align:left;
@@ -1654,6 +1656,69 @@ function liveHtml(j) {
     </div>${j.error ? `<div class="err">${esc(j.error)}</div>` : ""}</div>
     ${j.clips.length ? `<div class="grid" style="margin-bottom:28px">${[...j.clips].reverse().map(c => clipHtml(j, c)).join("")}</div>` : ""}`;
 }
+function uploadHelp(j) {
+  // a link that would not download: the person can get the video themselves and upload it
+  if (j.status !== "error" || j.source?.type !== "url" || !/video service|YouTube|download|refus/i.test(j.error || "")) return "";
+  return `<div class="uphelp"><b>Download the video yourself instead</b>
+    <ol><li>Open <a href="https://vidssave.com/" target="_blank" rel="noopener noreferrer">vidssave.com</a>, paste the video link and download it as MP4.</li>
+    <li>Come back here and upload the file. We make your clips from it, then delete it.</li></ol>
+    <label class="btn sm" id="up-${esc(j.id)}">${ic("up")}<span class="uptxt">Upload the video</span><input type="file" accept="video/mp4,video/quicktime,video/x-matroska,video/webm,.mp4,.mov,.mkv,.webm,.m4v" data-upfor="${esc(j.id)}" hidden></label>
+    <span class="sub"> Up to ${S.status.max_upload_mb || 500} MB.</span></div>`;
+}
+function sendPiece(jid, name, blob, offset, onProgress) {
+  return new Promise((resolve, reject) => {
+    const x = new XMLHttpRequest();
+    x.open("POST", `/api/jobs/${jid}/upload`);
+    x.setRequestHeader("X-Filename", encodeURIComponent(name));
+    x.setRequestHeader("X-Offset", String(offset));
+    x.upload.onprogress = e => { if (e.lengthComputable) onProgress(e.loaded); };
+    x.onload = () => {
+      let d = {}; try { d = JSON.parse(x.responseText); } catch {}
+      if (x.status >= 200 && x.status < 300) return resolve(d);
+      const err = new Error(typeof d.detail === "string" ? d.detail : "The upload failed."); err.status = x.status; err.received = d.received;
+      reject(err);
+    };
+    x.onerror = () => { const err = new Error("The connection was interrupted."); err.status = 0; reject(err); };
+    x.send(blob);
+  });
+}
+async function uploadFor(jid, file) {
+  // the video goes up in pieces (the server says how big); a piece that fails is sent again on its own, up to 3 times
+  const label = document.getElementById("up-" + jid), text = label && label.querySelector(".uptxt");
+  const say = t => { if (text) text.textContent = t; };
+  if (label) label.style.pointerEvents = "none";
+  const piece = (S.status.upload_chunk_mb || 40) * 1024 * 1024;
+  let offset = 0;
+  try {
+    while (offset < file.size) {
+      const end = Math.min(file.size, offset + piece);
+      let tries = 0;
+      for (;;) {
+        try {
+          const r = await sendPiece(jid, file.name, file.slice(offset, end), offset, loaded => say(`Uploading ${Math.round((offset + loaded) / file.size * 100)}%`));
+          offset = Math.min(end, r.received);
+          break;
+        } catch (e) {
+          if (e.status === 401) { location.href = "/login"; return; }
+          if (e.status === 409 && typeof e.received === "number" && e.received < offset) { offset = e.received; break; }   // carry on from what the server has
+          if (e.status && e.status < 500 && e.status !== 408 && e.status !== 429) throw e;        // refused for a reason: do not retry
+          if (++tries >= 3) throw e;
+          say("Connection problem, trying again…");
+          await new Promise(r => setTimeout(r, 1500 * tries));
+        }
+      }
+    }
+    say("Checking the video…");
+    const r = await fetch(`/api/jobs/${jid}/upload/finish`, {method: "POST", headers: {"X-Filename": encodeURIComponent(file.name)}});
+    if (r.status === 401) { location.href = "/login"; return; }
+    if (!r.ok) { let d = "The upload failed."; try { d = (await r.json()).detail || d; } catch {} throw new Error(typeof d === "string" ? d : "The upload failed."); }
+    toast("Got it. Making your clips now.", "ok");
+    return tick();
+  } catch (e) {
+    toast(e.message || "The upload failed.", "bad");
+    render();
+  }
+}
 function jobHtml(j) {
   if (j.status === "live") return liveHtml(j);
   const busy = j.status === "queued" || j.status === "running";
@@ -1669,7 +1734,7 @@ function jobHtml(j) {
     ${busy ? `<div class="bar"><i style="width:${Math.round(j.progress * 100)}%"></i></div><p class="sub">${esc(j.stage)} · ${Math.round(j.progress * 100)}%</p>` : ""}
     ${j.status === "done" && !j.clips.length ? `<p class="sub">${esc(j.stage)}</p>` : ""}
     ${j.status === "cancelled" ? `<p class="sub">Cancelled. Delete it, or add a new video.</p>` : ""}
-    ${j.error ? `<div class="err">${esc(j.error)}<button class="rep" data-act="report" data-ctx="${esc("Video failed: " + (j.title || j.source.name || "") + " | " + j.error)}">Report this</button></div>` : ""}${j.ai?.note ? `<p class="sub">${esc(j.ai.note)}</p>` : ""}
+    ${j.error ? `<div class="err">${esc(j.error)}<button class="rep" data-act="report" data-ctx="${esc("Video failed: " + (j.title || j.source.name || "") + " | " + j.error)}">Report this</button></div>` : ""}${uploadHelp(j)}${j.ai?.note ? `<p class="sub">${esc(j.ai.note)}</p>` : ""}
     ${j.clips.length ? `<div class="grid">${j.clips.map(c => clipHtml(j, c)).join("")}</div>` : ""}
     ${j.status === "done" && j.kind === "video" && j.clips.length ? `<div class="row" style="margin-top:12px"><button class="btn sm" data-act="moreclips">${ic("plus")}Create more clips</button></div>` : ""}`;
 }
@@ -2143,6 +2208,7 @@ document.addEventListener("submit", e => { if (e.target.id === "addform") { e.pr
 document.addEventListener("change", async e => {
   const t = e.target;
   if (t.id === "ai_provider") { $("#ai_models").innerHTML = ""; if (S.ai && t.value !== S.ai.provider) { $("#ai_model").value = ""; $("#ai_base").value = ""; } return aiHints(); }
+  if (t.dataset.upfor) { const f = t.files && t.files[0]; if (f) uploadFor(t.dataset.upfor, f); return; }
   if (t.dataset.sel) {
     const k = t.dataset.sel;
     if (t.checked) sel().add(k); else sel().delete(k);
