@@ -54,8 +54,11 @@ A short map for contributors and AI coding assistants.
   clips per video (default 3). One video at a time per person; `jobs.cancel` stops one at its next step (`_set` raises `Cancelled`).
 - **Space is limited per person** (`storage.py`, `CREATIVECUT_MAX_USER_MB`, 100 by default): over it, their oldest finished videos
   are deleted, never one still being made, recorded, with a post waiting, or just finished.
-- **YouTube access**: `media.ytdl_extra` adds the cookies file (a private copy) and proxy for YouTube links only;
-  `ytupdate.py` keeps yt-dlp current in the data folder. Never log or print the proxy address.
+- **YouTube access**: with `CREATIVECUT_APIFY_TOKEN(_FILE)` set, YouTube videos come from an Apify actor (`apify.py`, used by
+  `media.download`, `download_audio` and `download_section`; the whole video is fetched once into `source.mp4`, the audio is
+  taken from it, and a long video is never fetched in pieces). Without a token it is yt-dlp straight from the server:
+  `media.ytdl_extra` adds the cookies file (a private copy) for YouTube links only, and `ytupdate.py` keeps yt-dlp current
+  in the data folder. Never log or print the token. There is no proxy setting any more.
 - **Videos are never kept.** `jobs._drop_source` deletes the downloaded video the moment its clips are cut. Making a clip
   again fetches just its own stretch (`jobs._fetch_again`). There is no file upload: videos come from links only.
 - **Viral score**: the AI's score (`ai_score`) is blended once with the picture's score (`brain.blend`, `jobs._look`).

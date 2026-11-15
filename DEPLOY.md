@@ -100,9 +100,13 @@ Three things fix most "confirm you're not a bot" errors. Use them in this order.
      `CREATIVECUT_YT_COOKIES=/secrets/youtube-cookies.txt` to `.env`. Run `docker compose up -d`.
    - Cookies expire after weeks or months. When downloads start failing again, export a fresh file.
    - The file is read only: each download works on a private copy that is deleted afterwards.
-3. **Use a residential proxy** for YouTube only (it costs money, and bandwidth is what you pay for). Put its address in
-   `.env` as `CREATIVECUT_YT_PROXY=http://user:password@host:port`, or in a file named by `CREATIVECUT_YT_PROXY_FILE`.
-   Twitch and Kick downloads do not use it.
+3. **Get YouTube videos through Apify** (the way that works on a server). Make an account at apify.com, open
+   Settings, Integrations, and create an API token. Add
+   `CREATIVECUT_APIFY_TOKEN=apify_api_...` to `.env` (never commit `.env`), then `docker compose up -d`. From then on YouTube
+   links are downloaded by the Apify actor `marielise.dev/youtube-video-downloader`, and Creative Cut deletes the video
+   as soon as its clips are cut. Apify bills per started minute of video, so set `CREATIVECUT_APIFY_MAX_MIN` (90 by
+   default) to the longest video you will pay for; it also caps what one video can cost. Twitch and Kick downloads do
+   not use it, and neither do any of the settings above when a token is set.
 
 ## Cloudflare CDN in front
 

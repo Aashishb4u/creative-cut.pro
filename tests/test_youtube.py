@@ -1,11 +1,11 @@
-"""Getting past YouTube refusing the server: the cookies file, the proxy, and a newer yt-dlp. Nothing leaves this
+"""Getting past YouTube refusing the server: the cookies file and a newer yt-dlp. Nothing leaves this
 machine: pip and YouTube are replaced. Runs against the code directly, with its own empty data folder."""
 import os, sys, tempfile
 from pathlib import Path
 tmp = Path(tempfile.mkdtemp(prefix="pc-yt-"))
 os.environ["CREATIVECUT_DATA"] = str(tmp / "data")
 os.environ.update(DATABASE_URL="", CREATIVECUT_ACCOUNTS="0", CREATIVECUT_AI_KEY="", CREATIVECUT_AI_MODELS="",
-                  CREATIVECUT_YT_COOKIES=str(tmp / "cookies.txt"), CREATIVECUT_YT_PROXY="http://u:p@proxy.example:8080",
+                  CREATIVECUT_YT_COOKIES=str(tmp / "cookies.txt"),
                   CREATIVECUT_YTDLP_UPDATE_HOURS="24")
 (tmp / "cookies.txt").write_text("# Netscape HTTP Cookie File\n.youtube.com\tTRUE\t/\tTRUE\t2000000000\tSID\tabc\n")
 sys.path.insert(0, ".")
@@ -17,10 +17,10 @@ def check(n, got, want=True):
 
 YT, TW = "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "https://www.twitch.tv/videos/123456789"
 
-# ---- cookies and proxy are for YouTube only
+# ---- cookies are for YouTube only
 with media.ytdl_extra(YT) as e:
     copy = Path(e["cookiefile"])
-    check("YouTube gets the cookies and the proxy", (copy.is_file(), e["proxy"]), (True, "http://u:p@proxy.example:8080"))
+    check("YouTube gets the cookies and no proxy", (copy.is_file(), "proxy" in e), (True, False))
     check("the cookies are a private copy, never the original file", str(copy) != config.YT_COOKIES and copy.read_text() == Path(config.YT_COOKIES).read_text())
 check("the copy is deleted afterwards", copy.exists(), False)
 check("the original cookies file is untouched", Path(config.YT_COOKIES).is_file(), True)
@@ -28,24 +28,20 @@ with media.ytdl_extra(TW) as e:
     check("Twitch gets neither", e, {})
 with media.ytdl_extra("https://youtube.com.evil.example/x") as e:
     check("a look-alike host gets neither", e, {})
-os.environ["CREATIVECUT_YT_PROXY"] = ""; config._kept.clear()
-with media.ytdl_extra(YT) as e:
-    check("no proxy set: only the cookies", sorted(e), ["cookiefile"])
-os.environ["CREATIVECUT_YT_PROXY"] = "http://u:p@proxy.example:8080"; config._kept.clear()
 config.YT_COOKIES = str(tmp / "missing.txt")
 with media.ytdl_extra(YT) as e:
-    check("a cookies file that is not there is ignored, not an error", sorted(e), ["proxy"])
+    check("a cookies file that is not there is ignored, not an error", e, {})
 config.YT_COOKIES = str(tmp / "cookies.txt")
 
 # ---- they reach yt-dlp, and only inside the guard
 with media._youtube_guard(YT):
     y = media._ydl({})
-    check("yt-dlp is given the cookies file and the proxy for a YouTube link", (y.params.get("cookiefile", "").endswith(".txt"), y.params.get("proxy")), (True, "http://u:p@proxy.example:8080"))
+    check("yt-dlp is given the cookies file for a YouTube link", y.params.get("cookiefile", "").endswith(".txt"), True)
     seen = y.params["cookiefile"]
 check("...and the private copy is gone once the download is over", Path(seen).exists(), False)
-check("outside the guard yt-dlp gets neither", ("cookiefile" in media._ydl({}).params, "proxy" in media._ydl({}).params), (False, False))
+check("outside the guard yt-dlp gets no cookies", "cookiefile" in media._ydl({}).params, False)
 with media._youtube_guard(TW):
-    check("a Twitch link gets neither", ("cookiefile" in media._ydl({}).params, "proxy" in media._ydl({}).params), (False, False))
+    check("a Twitch link gets no cookies", "cookiefile" in media._ydl({}).params, False)
 
 # ---- a refusal asks for a newer yt-dlp
 asked = []

@@ -57,7 +57,8 @@ def main() -> int:
                 ("captions: tidied, never changed", ["tests/test_captions.py"]),
                 ("free plan, cancelling and the no-AI hook", ["tests/test_plan.py"]),
                 ("colours come from one file", ["tests/test_theme.py"]),
-                ("YouTube cookies, proxy and yt-dlp updates", ["tests/test_youtube.py"]),
+                ("YouTube cookies and yt-dlp updates", ["tests/test_youtube.py"]),
+                ("YouTube through Apify", ["tests/test_apify.py"]),
                 ("space per person", ["tests/test_storage.py"]),
                 ("bring your own AI key", ["tests/test_ai_users.py"]),
                 ("viral clips, the picture and not keeping videos", ["tests/test_viral.py"])]

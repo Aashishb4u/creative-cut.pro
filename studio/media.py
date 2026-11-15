@@ -12,7 +12,9 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
-from . import config, ytupdate
+import threading
+
+from . import apify, config, ytupdate
 
 ytupdate.use_updated()          # a newer yt-dlp fetched earlier (ytupdate.py) wins over the installed one
 
@@ -64,7 +66,7 @@ _extra = contextvars.ContextVar("ytdl_extra", default=None)
 @contextlib.contextmanager
 def ytdl_extra(url):
     """What yt-dlp needs to be let in by YouTube, for this link only: the cookies file (a private copy, because
-    yt-dlp writes to the file it is given) and the proxy. Nothing for any other site."""
+    yt-dlp writes to the file it is given). Nothing for any other site."""
     out, tmp = {}, None
     if is_youtube(url):
         if config.YT_COOKIES and Path(config.YT_COOKIES).is_file():
@@ -74,8 +76,6 @@ def ytdl_extra(url):
                 out["cookiefile"] = str(tmp)
             except OSError:
                 tmp = None
-        if config.yt_proxy():
-            out["proxy"] = config.yt_proxy()
     try:
         yield out
     finally:
@@ -153,11 +153,56 @@ def _biggest(job_dir: Path, stem: str) -> Path:
 
 def info(url: str) -> dict:
     """Title, channel and length, without downloading anything."""
-    with _youtube_guard(url), _ydl({}) as ydl:
-        i = ydl.extract_info(url, download=False)
+    try:
+        with _youtube_guard(url), _ydl({}) as ydl:
+            i = ydl.extract_info(url, download=False)
+    except Exception:  # noqa: BLE001
+        if apify_on(url):
+            return _oembed(url)           # YouTube refuses the server's own look: the title is enough to go on
+        raise
     return {"title": i.get("title") or "", "uploader": i.get("uploader") or i.get("channel") or "",
             "duration": float(i.get("duration") or 0), "is_live": bool(i.get("is_live")),
             "thumbnail": i.get("thumbnail") or "", "kind": i.get("_type") or "video"}
+
+
+def apify_on(url: str) -> bool:
+    """YouTube links are fetched through the Apify actor whenever a token is set."""
+    return is_youtube(url) and apify.ready()
+
+
+def _oembed(url: str) -> dict:
+    """Title, channel and picture of a YouTube video from YouTube's public embed information, which is not refused
+    the way downloads are. The length is not in it (0 here; it is learned from the file once it has been fetched)."""
+    import httpx
+    try:
+        r = httpx.get("https://www.youtube.com/oembed", params={"url": url, "format": "json"}, timeout=10)
+        d = r.json() if r.status_code == 200 else {}
+    except (httpx.HTTPError, ValueError):
+        d = {}
+    if not d.get("title"):
+        raise RuntimeError("That video could not be found. Check the link, and that the video is public.")
+    return {"title": d.get("title") or "", "uploader": d.get("author_name") or "", "duration": 0.0, "is_live": False,
+            "thumbnail": d.get("thumbnail_url") or "", "kind": "video"}
+
+
+_apify_locks: dict = {}
+_apify_guard = threading.Lock()
+
+
+def _apify_source(url: str, job_dir: Path, height, on_progress=None) -> Path:
+    """The whole video from the actor, saved once per folder as source.mp4. The audio step and the video step ask at the
+    same time: the first one fetches it and the other waits for it, so one video is paid for once."""
+    job_dir = Path(job_dir)
+    with _apify_guard:
+        lock = _apify_locks.setdefault(str(job_dir), threading.Lock())
+    with lock:
+        dest = job_dir / "source.mp4"
+        if dest.is_file():
+            return dest
+        for old in job_dir.glob("source.*"):          # a half-finished file from an earlier try
+            old.unlink(missing_ok=True)
+        apify.fetch(url, dest, height, tick=(lambda: on_progress({"status": "downloading"})) if on_progress else None)
+        return dest
 
 
 def youtube_words(url: str):
@@ -307,6 +352,11 @@ def download_audio(url: str, job_dir: Path, on_progress=None) -> Path:
         if on_progress and d.get("status") == "downloading" and total:
             on_progress(d.get("downloaded_bytes", 0) / total)
 
+    if apify_on(url):
+        src = _apify_source(url, job_dir, 720, (lambda d: on_progress(0.0)) if on_progress else None)
+        out = Path(job_dir) / "audio_src.m4a"
+        run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(src), "-vn", "-c:a", "aac", "-b:a", "96k", str(out)])
+        return out
     with _youtube_guard(url), _ydl({"format": "ba[ext=m4a]/ba/worst", "outtmpl": str(job_dir / "audio_src.%(ext)s"),
                "progress_hooks": [hook]}) as ydl:
         ydl.download([url])
@@ -316,6 +366,8 @@ def download_audio(url: str, job_dir: Path, on_progress=None) -> Path:
 def download(url: str, job_dir: Path, height=720, on_progress=None) -> Path:
     """The whole video. Used for shorter videos, where this is quicker than fetching pieces. on_progress is called as
     it goes; raising from it stops the download (that is how a cancelled video stops)."""
+    if apify_on(url):
+        return _apify_source(url, job_dir, height, on_progress)
     hooks = [lambda d: on_progress(d)] if on_progress else []
     with _youtube_guard(url), _ydl({"format": _video_format(height), "merge_output_format": "mp4",
                                     "outtmpl": str(job_dir / "source.%(ext)s"), "progress_hooks": hooks}) as ydl:
@@ -327,8 +379,22 @@ def download_section(url: str, out_dir: Path, stem: str, start: float, end: floa
     """Just one stretch of the video. Normally the cut lands on a keyframe, so find_offset() pins the true start.
     With exact=True the cut is made at the very second asked for, which is what we need when the rest of the video
     has already been deleted and there is nothing left to compare the piece with."""
-    from yt_dlp.utils import download_range_func
     out_dir.mkdir(parents=True, exist_ok=True)
+    if apify_on(url):
+        # the actor only hands over the whole video: fetch it into a scratch folder, cut the stretch at the exact second,
+        # and throw the rest away
+        scratch = Path(tempfile.mkdtemp(prefix="apf", dir=str(out_dir)))
+        try:
+            whole = _apify_source(url, scratch, height, on_progress)
+            out = out_dir / (stem + ".mp4")
+            run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(whole), "-ss", f"{max(0.0, start):.3f}",
+                 "-t", f"{max(0.5, end - start):.3f}", "-c:v", "libx264", "-preset", "veryfast", "-crf", "18",
+                 "-c:a", "aac", "-b:a", "160k", str(out)])
+        finally:
+            shutil.rmtree(scratch, ignore_errors=True)
+            _apify_locks.pop(str(scratch), None)
+        return out
+    from yt_dlp.utils import download_range_func
     with _youtube_guard(url), _ydl({"format": _video_format(height), "merge_output_format": "mp4",
                "outtmpl": str(out_dir / (stem + ".%(ext)s")),
                "force_keyframes_at_cuts": bool(exact),

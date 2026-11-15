@@ -37,7 +37,7 @@ def _log(c, admin_id: str, action: str, target_id: str = None, detail: str = "")
 def overview() -> dict:
     from pathlib import Path
 
-    from . import ai, auth, jobs, live, load, mailer, transcribe, ytupdate
+    from . import ai, apify, auth, jobs, live, load, mailer, transcribe, ytupdate
     now = time.time()
     midnight = time.mktime(time.localtime(now)[:3] + (0, 0, 0, 0, 0, -1))
     d7, d30 = now - 7 * 86400, now - 30 * 86400
@@ -89,7 +89,7 @@ def overview() -> dict:
                    "working": sum(1 for j in all_jobs if j["status"] in ("queued", "running"))},
         "daily": list(daily.values()), "by_purpose": by_purpose, "users": users, "log": log,
         "server": {"speech_model": transcribe.model_ready(), "ai_key": bool(ai.server()["key"]), "ai_provider": ai.PROVIDERS.get(ai.server()["provider"], ("",))[0],
-                   "ai_model": (ai.server()["models"] or [""])[0], "youtube": {"cookies": bool(config.YT_COOKIES and Path(config.YT_COOKIES).is_file()), "proxy": bool(config.yt_proxy()), **ytupdate.status()}, "google": auth.google_ready(), "mail": mailer.ready(),
+                   "ai_model": (ai.server()["models"] or [""])[0], "youtube": {"cookies": bool(config.YT_COOKIES and Path(config.YT_COOKIES).is_file()), "apify": apify.ready(), **ytupdate.status()}, "google": auth.google_ready(), "mail": mailer.ready(),
                    "free_gb": round(shutil.disk_usage(config.DATA_DIR).free / 1e9, 1),
                    "load": load.state(), "running": jobs.running_now(), "waiting": jobs.waiting_total(),
                    "database": config.DATABASE_URL.split(":", 1)[0].split("+")[0]}}

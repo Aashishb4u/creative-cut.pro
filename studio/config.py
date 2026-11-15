@@ -136,15 +136,20 @@ def ai_ready() -> bool:
     return ai.ready()
 
 
-# ---------------------------------------------------------------- downloading from YouTube (see media.py, ytupdate.py)
-# YouTube often refuses a server ("confirm you're not a bot"). Three things help: a cookies file from a normal
-# YouTube account, a residential proxy, and keeping yt-dlp up to date. All are optional.
+# ---------------------------------------------------------------- downloading from YouTube (see media.py, apify.py, ytupdate.py)
+# YouTube often refuses a server ("confirm you're not a bot"). Creative Cut gets YouTube videos through an Apify actor
+# when a token is set (apify.py). Without one it downloads directly, which is fine on your own computer. A cookies
+# file from a spare account and keeping yt-dlp up to date help the direct way. All are optional.
 YT_COOKIES = env("CREATIVECUT_YT_COOKIES", "").strip()            # path to a cookies.txt (Netscape format) from a YouTube account
 
 
-def yt_proxy() -> str:
-    """http://user:pass@host:port of a proxy used for YouTube only (or CREATIVECUT_YT_PROXY_FILE: a file holding it)."""
-    return _secret("CREATIVECUT_YT_PROXY", "CREATIVECUT_YT_PROXY_FILE", r"\S{6,}")
+def apify_token() -> str:
+    """The Apify API token (CREATIVECUT_APIFY_TOKEN, or CREATIVECUT_APIFY_TOKEN_FILE: a file holding it)."""
+    return _secret("CREATIVECUT_APIFY_TOKEN", "CREATIVECUT_APIFY_TOKEN_FILE", r"\S{16,}")
+
+
+APIFY_ACTOR = env("CREATIVECUT_APIFY_ACTOR", "marielise.dev/youtube-video-downloader").strip()
+APIFY_MAX_MIN = int(float(env("CREATIVECUT_APIFY_MAX_MIN", "90") or 90))      # longest YouTube video fetched this way, in minutes
 
 
 YTDLP_UPDATE_HOURS = float(env("CREATIVECUT_YTDLP_UPDATE_HOURS", "24") or 0)   # how often to look for a newer yt-dlp; 0 = never
