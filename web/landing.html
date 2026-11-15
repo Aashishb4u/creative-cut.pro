@@ -152,6 +152,7 @@ h3{font-family:Montserrat,system-ui,sans-serif;font-weight:800;text-transform:no
 
 /* clip showcase */
 .clips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(18px,3vw,32px);justify-items:center}
+.clips figure{width:100%;max-width:280px}
 .clips .frame{width:100%;max-width:280px;transition:transform .35s var(--ease)}
 .clips .frame:hover{transform:translateY(-6px)}
 .clips figcaption{margin-top:14px;text-align:center;font-size:14px;color:var(--mute)}
@@ -259,6 +260,19 @@ footer.site{border-top:1px solid var(--line2);padding:56px 0 30px;background:rgb
 .watch-frame .frame{width:100%}
 @media (max-width:900px){.stage-wrap{height:460px;max-width:520px;margin:0 auto;width:100%}}
 @media (max-width:560px){.stage-wrap{height:400px}}
+
+/* real footage: fills its frame; the placeholder and tag go away once a video plays */
+.frame.has-video .frame-tag{display:none}
+.phone .frame-slot{position:absolute;inset:0}
+.phone .frame-slot video{width:100%;height:100%;object-fit:cover}
+.phone.has-video .scene{display:none}
+.phone.has-video .hook{top:31%}
+.phone.has-video .caps{bottom:12%}
+.phone.has-video::after{content:"";position:absolute;inset:auto 0 0 0;height:34%;background:linear-gradient(transparent,rgba(11,10,36,.55));pointer-events:none}
+.sound{position:absolute;right:14px;bottom:14px;z-index:4;width:42px;height:42px;border-radius:50%;border:1px solid var(--line2);background:rgba(11,10,36,.72);color:#fff;display:none;place-items:center;cursor:pointer;transition:background-color .2s}
+.sound:hover{background:var(--red)}
+.sound svg{width:20px;height:20px}
+.frame.has-video .sound{display:grid}
 </style>
 
 </head>
@@ -300,12 +314,12 @@ footer.site{border-top:1px solid var(--line2);padding:56px 0 30px;background:rgb
     <h2>One stream in. Clips out.</h2>
   </div>
   <div class="watch-frame reveal">
-<div class="frame is-16x9" id="heroFrame" data-video="/brand/hero.mp4">
+<div class="frame is-16x9" id="heroFrame" data-video="/clips/clipping_long.mp4" data-sound="1">
       <span class="frame-tag">Your footage</span>
       <div class="slot-ph">
         <span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.7l-12-7.5A1 1 0 0 0 7 4.5z"/></svg></span>
         <b>Real clip footage goes here</b>
-        <span>16:9 · add web/brand/hero.mp4</span>
+        <span>16:9 · add web/video_clips/clipping_long.mp4</span>
       </div>
       <div class="frame-bar" aria-hidden="true"><span>0:12</span><i></i><span>3:42:10</span></div>
       </div>
@@ -347,6 +361,7 @@ footer.site{border-top:1px solid var(--line2);padding:56px 0 30px;background:rgb
   <div class="reveal" style="--d:.1s">
     <div class="phone" id="phone" data-style="bounce">
       <div class="scene"></div>
+      <div class="frame-slot" data-video="/clips/streaming_clip.mp4"></div>
       <div class="hook">Wait for it</div>
       <div class="caps" id="caps" aria-live="polite"></div>
     </div>
@@ -359,9 +374,9 @@ footer.site{border-top:1px solid var(--line2);padding:56px 0 30px;background:rgb
     <h2>Real clips, straight out of the app.</h2>
   </div>
   <div class="clips">
-    <figure class="reveal" style="margin:0"><div class="frame is-9x16 slot" data-video=""><div class="slot-ph"><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.7l-12-7.5A1 1 0 0 0 7 4.5z"/></svg></span><b>Clip 1</b><span>9:16 · coming soon</span></div></div><figcaption>Clip 1</figcaption></figure>
-    <figure class="reveal" style="margin:0;--d:.1s"><div class="frame is-9x16 slot" data-video=""><div class="slot-ph"><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.7l-12-7.5A1 1 0 0 0 7 4.5z"/></svg></span><b>Clip 2</b><span>9:16 · coming soon</span></div></div><figcaption>Clip 2</figcaption></figure>
-    <figure class="reveal" style="margin:0;--d:.2s"><div class="frame is-9x16 slot" data-video=""><div class="slot-ph"><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.7l-12-7.5A1 1 0 0 0 7 4.5z"/></svg></span><b>Clip 3</b><span>9:16 · coming soon</span></div></div><figcaption>Clip 3</figcaption></figure>
+    <figure class="reveal" style="margin:0"><div class="frame is-9x16 slot" data-video="/clips/demo_clip_1.mp4"><div class="slot-ph"><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.7l-12-7.5A1 1 0 0 0 7 4.5z"/></svg></span><b>Clip 1</b><span>9:16 · add web/video_clips/demo_clip_1.mp4</span></div></div><figcaption>Clip 1</figcaption></figure>
+    <figure class="reveal" style="margin:0;--d:.1s"><div class="frame is-9x16 slot" data-video="/clips/demo_clips_2.mp4"><div class="slot-ph"><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.7l-12-7.5A1 1 0 0 0 7 4.5z"/></svg></span><b>Clip 2</b><span>9:16 · add web/video_clips/demo_clips_2.mp4</span></div></div><figcaption>Clip 2</figcaption></figure>
+    <figure class="reveal" style="margin:0;--d:.2s"><div class="frame is-9x16 slot" data-video="/clips/demo_clip_3.mp4"><div class="slot-ph"><span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.7l-12-7.5A1 1 0 0 0 7 4.5z"/></svg></span><b>Clip 3</b><span>9:16 · add web/video_clips/demo_clip_3.mp4</span></div></div><figcaption>Clip 3</figcaption></figure>
   </div>
 </div></section>
 
@@ -516,16 +531,34 @@ fetch("/api/auth/me").then(r => r.json()).then(d => {
   document.querySelectorAll('[data-auth="up"]').forEach(e => { e.href = "/app"; e.textContent = "Open Creative Cut"; });
 }).catch(() => {});
 
-// clip slots: a slot with data-video set plays that clip; an empty one keeps its placeholder
-document.querySelectorAll(".frame[data-video]").forEach(slot => {
-  const src = slot.dataset.video; if (!src) return;
+// footage: every frame with data-video loads its clip when it comes near the screen, plays while visible, and
+// pauses when it scrolls away. A missing file keeps the placeholder, so the page never shows a broken player.
+const FRAMES = [...document.querySelectorAll(".frame[data-video], .frame-slot[data-video]")];
+function mount(el) {
+  const src = el.dataset.video; if (!src) return;
+  const host = el.closest(".frame, .phone") || el;
   const v = document.createElement("video");
-  Object.assign(v, {muted: true, loop: true, autoplay: true, playsInline: true, preload: "metadata"});
+  Object.assign(v, {muted: true, loop: true, playsInline: true, preload: "none"});
   v.setAttribute("muted", ""); v.setAttribute("playsinline", "");
-  v.addEventListener("loadeddata", () => slot.classList.add("has-video"), {once: true});
+  v.addEventListener("loadeddata", () => {
+    host.classList.add("has-video");
+    if (el.dataset.sound) {
+      const b = document.createElement("button");
+      b.className = "sound"; b.type = "button"; b.setAttribute("aria-label", "Turn sound on");
+      b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4z"/><path class="on" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>';
+      b.addEventListener("click", () => { v.muted = !v.muted; b.setAttribute("aria-label", v.muted ? "Turn sound on" : "Turn sound off"); b.style.background = v.muted ? "" : "var(--red)"; });
+      el.append(b);
+    }
+  }, {once: true});
   v.addEventListener("error", () => v.remove(), {once: true});
-  v.src = src; slot.prepend(v);
-});
+  el.prepend(v);
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(es => es.forEach(e => {
+      if (e.isIntersecting) { if (!v.src) v.src = src; if (!reduce) v.play().catch(() => {}); } else v.pause();
+    }), {rootMargin: "200px", threshold: 0}).observe(el);
+  } else { v.src = src; if (!reduce) v.play().catch(() => {}); }
+}
+FRAMES.forEach(mount);
 </script>
 <script type="module" src="/assets/hero3d.js?v=1"></script>
 </body>

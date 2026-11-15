@@ -375,9 +375,10 @@ def brand(name: str):
 @app.get("/clips/{name}")
 def clip_video(name: str):
     """Sample clips for the landing page, kept in web/video_clips (not in git: they are large)."""
-    if not re.fullmatch(r"[\w\-]+\.mp4", name) or not (WEB / "video_clips" / name).is_file():
+    if not re.fullmatch(r"[\w\-]+\.(mp4|mov)", name) or not (WEB / "video_clips" / name).is_file():
         raise HTTPException(404)
-    return FileResponse(WEB / "video_clips" / name, media_type="video/mp4", headers={"Cache-Control": "public, max-age=604800"})
+    kind = "video/quicktime" if name.endswith(".mov") else "video/mp4"
+    return FileResponse(WEB / "video_clips" / name, media_type=kind, headers={"Cache-Control": "public, max-age=604800"})
 
 
 @app.get("/assets/{name}")
