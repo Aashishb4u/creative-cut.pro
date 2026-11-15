@@ -34,9 +34,9 @@ function start() {
   const stage = new THREE.Group();          // the video and its clips: moved aside so the steps never cover them
   world.add(stage);
 
-  scene.add(new THREE.HemisphereLight(0xffffff, 0xcfe3ff, 1.5));
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xf9d0d0, 1.5));
   const key = new THREE.DirectionalLight(0xffffff, 2.4); key.position.set(4, 6, 9); scene.add(key);
-  const rim = new THREE.DirectionalLight(0x8cbfff, 1.6); rim.position.set(-7, -2, 5); scene.add(rim);
+  const rim = new THREE.DirectionalLight(0xffd23f, 1.6); rim.position.set(-7, -2, 5); scene.add(rim);
 
   // ---------------------------------------------------------------- shapes and pictures
   function rounded(w, h, r) {
@@ -76,8 +76,8 @@ function start() {
   // the long video: a 16:9 frame with a timeline and a waveform whose loud spots are the moments
   const LOUD = [0.17, 0.52, 0.81];
   const slabTex = paint(1280, 720, (g, w, h) => {
-    landscape(g, w, h, "#DCEBFF", "#8CBFFF", "#2E6FF1", "#1D4FD8");
-    g.fillStyle = "rgba(11,29,77,.55)"; g.fillRect(0, h * 0.8, w, h * 0.2);
+    landscape(g, w, h, "#FFF6C2", "#FFB8B8", "#E5202E", "#9E1020");
+    g.fillStyle = "rgba(20,10,20,.55)"; g.fillRect(0, h * 0.8, w, h * 0.2);
     for (let i = 0; i < 120; i++) {
       const x = 40 + i * ((w - 80) / 120), near = Math.min(...LOUD.map(l => Math.abs(i / 120 - l)));
       const amp = near < 0.03 ? 0.75 + Math.random() * 0.25 : 0.12 + Math.random() * 0.3;
@@ -86,23 +86,23 @@ function start() {
     }
     pill(g, 40, h * 0.06, 230, 44, 22, "rgba(255,255,255,.92)");
     g.fillStyle = "#E5323F"; g.beginPath(); g.arc(70, h * 0.06 + 22, 8, 0, 7); g.fill();
-    g.fillStyle = "#0B1D4D"; g.font = "600 24px Montserrat, Arial, sans-serif"; g.fillText("3:42:10 long", 90, h * 0.06 + 31);
+    g.fillStyle = "#15110F"; g.font = "600 24px Montserrat, Arial, sans-serif"; g.fillText("3:42:10 long", 90, h * 0.06 + 31);
   });
   // a finished clip: vertical, with a hook at the top and word-by-word captions
-  const CLIP_LOOKS = [["#BFE0FF", "#59A4FF", "#2563EB", "#1D4FD8"], ["#DCEBFF", "#8CBFFF", "#1E4FBF", "#0B1D4D"], ["#EAF3FF", "#B8D6FF", "#2E6FF1", "#12307A"]];
+  const CLIP_LOOKS = [["#FFD23F", "#FF7A1F", "#E5202E", "#9E1020"], ["#F3FFD6", "#B8FF3D", "#3F8F2A", "#1F3D0C"], ["#F9D0D0", "#FF5A5F", "#5C0F14", "#15110F"]];
   const HOOKS = ["WAIT FOR IT", "HE SAID WHAT", "NOBODY SAW THIS"];
   const clipTex = CLIP_LOOKS.map((c, i) => paint(540, 960, (g, w, h) => {
     landscape(g, w, h, c[0], c[1], c[2], c[3]);
     g.font = "800 46px Montserrat, Arial, sans-serif"; const hw = g.measureText(HOOKS[i]).width + 56;
     pill(g, (w - hw) / 2, h * 0.12, hw, 78, 18, "#fff");
-    g.fillStyle = "#0B1D4D"; g.textAlign = "center"; g.fillText(HOOKS[i], w / 2, h * 0.12 + 55);
-    g.font = "900 58px Montserrat, Arial, sans-serif"; g.lineWidth = 12; g.strokeStyle = "#0B1D4D";
+    g.fillStyle = "#15110F"; g.textAlign = "center"; g.fillText(HOOKS[i], w / 2, h * 0.12 + 55);
+    g.font = "900 58px Montserrat, Arial, sans-serif"; g.lineWidth = 12; g.strokeStyle = "#15110F";
     const words = [["THIS", "#fff"], ["CHANGES", "#FFD84D"]];
     words.forEach(([t, col], k) => { const y = h * 0.66 + k * 70; g.strokeText(t, w / 2, y); g.fillStyle = col; g.fillText(t, w / 2, y); });
     pill(g, 40, h - 46, w - 80, 8, 4, "rgba(255,255,255,.35)"); pill(g, 40, h - 46, (w - 80) * (0.3 + i * 0.2), 8, 4, "#fff");
   }));
 
-  const blue = new THREE.MeshStandardMaterial({color: 0x2e6ff1, metalness: 0.15, roughness: 0.32});
+  const blue = new THREE.MeshStandardMaterial({color: 0xe5202e, metalness: 0.15, roughness: 0.32});
   function slabMesh(w, h, r, depth, tex) {
     const group = new THREE.Group(), shape = rounded(w, h, r);
     const body = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, {depth, bevelEnabled: true, bevelThickness: 0.035, bevelSize: 0.035, bevelSegments: 3, curveSegments: 12}), blue);
@@ -117,7 +117,7 @@ function start() {
   const SW = 6.4, SH = 3.6;
   const slab = slabMesh(SW, SH, 0.24, 0.14, slabTex);
   stage.add(slab);
-  const glowMat = () => new THREE.MeshBasicMaterial({color: 0x59a4ff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false});
+  const glowMat = () => new THREE.MeshBasicMaterial({color: 0xff5a5f, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false});
   const playhead = new THREE.Mesh(new THREE.PlaneGeometry(0.035, SH * 0.98), new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.95, toneMapped: false, depthWrite: false}));
   playhead.position.z = 0.13; playhead.renderOrder = 3; slab.add(playhead);
   const SEG_W = 1.15, segX = LOUD.map(l => (l - 0.5) * SW);
@@ -141,9 +141,9 @@ function start() {
   const N = 140, pos = new Float32Array(N * 3), seed = new Float32Array(N);
   for (let i = 0; i < N; i++) { pos[i * 3] = (Math.random() - 0.5) * 16; pos[i * 3 + 1] = (Math.random() - 0.5) * 9; pos[i * 3 + 2] = (Math.random() - 0.5) * 6 - 1; seed[i] = Math.random() * 6.28; }
   const sparkGeo = new THREE.BufferGeometry(); sparkGeo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-  const sparks = new THREE.Points(sparkGeo, new THREE.PointsMaterial({color: 0x8cbfff, size: 0.16, map: starTex, transparent: true, opacity: 0.85, depthWrite: false, alphaTest: 0.01}));
+  const sparks = new THREE.Points(sparkGeo, new THREE.PointsMaterial({color: 0xffd23f, size: 0.16, map: starTex, transparent: true, opacity: 0.85, depthWrite: false, alphaTest: 0.01}));
   world.add(sparks);
-  const orbMat = new THREE.MeshStandardMaterial({color: 0x59a4ff, metalness: 0.1, roughness: 0.15, emissive: 0x2563eb, emissiveIntensity: 0.35});
+  const orbMat = new THREE.MeshStandardMaterial({color: 0xff5a5f, metalness: 0.1, roughness: 0.15, emissive: 0xe5202e, emissiveIntensity: 0.35});
   const orbs = [[-4.2, 1.6, -1, 0.42], [4.4, -1.4, -0.5, 0.3]].map(([x, y, z, r]) => { const o = new THREE.Mesh(new THREE.SphereGeometry(r, 48, 32), orbMat); o.position.set(x, y, z); o.userData.base = [x, y, z]; world.add(o); return o; });
 
   // ---------------------------------------------------------------- sizing

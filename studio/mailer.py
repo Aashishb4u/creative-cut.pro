@@ -34,23 +34,23 @@ def _html(title: str, intro: str, button: str, link: str, outro: str, logo_src: 
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light only"><title>{e(title)}</title></head>
-<body style="margin:0;padding:0;background:#0B1D4D;-webkit-text-size-adjust:100%">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#0B1D4D">{e(intro)}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1D4D"><tr><td align="center" style="padding:36px 14px">
+<body style="margin:0;padding:0;background:#15110F;-webkit-text-size-adjust:100%">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#15110F">{e(intro)}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#15110F"><tr><td align="center" style="padding:36px 14px">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px">
     <tr><td style="padding:0 6px 22px"><a href="{e(site)}" style="text-decoration:none">
       <img src="{e(logo_src)}" width="138" height="38" alt="Creative Cut" style="display:block;border:0;width:138px;height:38px"></a></td></tr>
-    <tr><td style="background:#FFFFFF;border-radius:18px;border:1px solid #DCEBFF;padding:36px 34px">
+    <tr><td style="background:#FFFFFF;border-radius:18px;border:1px solid #EFDCDC;padding:36px 34px">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-        <tr><td style="font-family:{font};font-size:24px;line-height:1.25;font-weight:700;color:#0B1D4D;padding-bottom:12px">{e(title)}</td></tr>
+        <tr><td style="font-family:{font};font-size:24px;line-height:1.25;font-weight:700;color:#15110F;padding-bottom:12px">{e(title)}</td></tr>
         <tr><td style="font-family:{font};font-size:16px;line-height:1.65;color:#52668F;padding-bottom:28px">{e(intro)}</td></tr>
         <tr><td style="padding-bottom:28px">
-          <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="border-radius:12px;background:#2563EB">
-            <a href="{e(link)}" style="display:inline-block;padding:14px 28px;font-family:{font};font-size:16px;font-weight:700;color:#0B1D4D;text-decoration:none;border-radius:12px">{e(button)}</a>
+          <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="border-radius:12px;background:#E5202E">
+            <a href="{e(link)}" style="display:inline-block;padding:14px 28px;font-family:{font};font-size:16px;font-weight:700;color:#15110F;text-decoration:none;border-radius:12px">{e(button)}</a>
           </td></tr></table></td></tr>
         <tr><td style="font-family:{font};font-size:14px;line-height:1.6;color:#6C82AB;padding-bottom:22px">{e(outro)}</td></tr>
-        <tr><td style="border-top:1px solid #DCEBFF;padding-top:18px;font-family:{font};font-size:12px;line-height:1.6;color:#7E93BA">
-          Button not working? Copy this link into your browser:<br><a href="{e(link)}" style="color:#1E4FBF;word-break:break-all">{e(link)}</a></td></tr>
+        <tr><td style="border-top:1px solid #EFDCDC;padding-top:18px;font-family:{font};font-size:12px;line-height:1.6;color:#7E93BA">
+          Button not working? Copy this link into your browser:<br><a href="{e(link)}" style="color:#9E1020;word-break:break-all">{e(link)}</a></td></tr>
       </table></td></tr>
     <tr><td align="center" style="padding:24px 10px 0;font-family:{font};font-size:12px;line-height:1.7;color:#7E93BA">
       You're getting this because of your Creative Cut account. We only email you about your account.<br>
