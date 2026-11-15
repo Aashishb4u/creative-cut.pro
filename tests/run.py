@@ -56,6 +56,7 @@ def main() -> int:
                 ("few limits by default", ["tests/test_limits.py"]),
                 ("captions: tidied, never changed", ["tests/test_captions.py"]),
                 ("free plan, cancelling and the no-AI hook", ["tests/test_plan.py"]),
+                ("colours come from one file", ["tests/test_theme.py"]),
                 ("YouTube cookies, proxy and yt-dlp updates", ["tests/test_youtube.py"]),
                 ("space per person", ["tests/test_storage.py"]),
                 ("bring your own AI key", ["tests/test_ai_users.py"]),

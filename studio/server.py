@@ -383,8 +383,10 @@ def clip_video(name: str):
 
 @app.get("/assets/{name}")
 def asset(name: str):
-    if not re.fullmatch(r"[\w\-]+\.js", name) or not (WEB / name).is_file():
+    if not re.fullmatch(r"[\w\-]+\.(js|css)", name) or not (WEB / name).is_file():
         raise HTTPException(404)
+    if name.endswith(".css"):       # the colours: checked again on every visit, so a change shows at once
+        return FileResponse(WEB / name, media_type="text/css", headers={"Cache-Control": "no-cache"})
     return FileResponse(WEB / name, media_type="text/javascript", headers={"Cache-Control": "public, max-age=86400, stale-while-revalidate=604800"})
 
 

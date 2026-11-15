@@ -9,42 +9,43 @@
 <meta name="robots" content="index,follow">
 <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
 <link rel="icon" type="image/png" sizes="256x256" href="/brand/favicon.png">
+<link rel="stylesheet" href="/assets/theme.css">
 <style>
-:root{--brand:#2563EB;--ink:#0B1D4D;--deep:#1E4FBF;--muted:#F0F7FF;--line:#DCEBFF;--text:#0B1D4D;--dim:#52668F;--faint:#8A9BBD;color-scheme:light}
+:root{--brand:var(--c-brand);--ink:var(--c-text);--deep:var(--c-tint-2);--muted:var(--c-surface);--line:var(--c-line);--text:var(--c-text);--dim:var(--c-text-dim);--faint:var(--c-text-faint);color-scheme:dark}
 *{box-sizing:border-box}
-body{margin:0;background:#fff;color:var(--text);font:16px/1.7 "Montserrat","Segoe UI",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+body{margin:0;background:linear-gradient(180deg,var(--c-bg),var(--c-bg-mid) 60%,var(--c-bg-end)) fixed;color:var(--text);font:16px/1.7 "Montserrat","Segoe UI",system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
 a{color:var(--deep)}
-header{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);z-index:2}
+header{position:sticky;top:0;background:var(--c-bg);border-bottom:1px solid var(--line);z-index:2}
 .bar{max-width:860px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
 .bar img{height:52px;display:block}
 .bar nav{margin-left:auto;display:flex;gap:2px;padding:3px;background:var(--muted);border-radius:10px;overflow-x:auto;max-width:100%}
 .bar nav a{font-size:14px;font-weight:600;color:var(--dim);text-decoration:none;padding:6px 12px;border-radius:8px;white-space:nowrap;transition:background-color .15s ease,color .15s ease}
-.bar nav a:hover{background:#E3EEFF;color:var(--text)}
+.bar nav a:hover{background:var(--c-surface-2);color:var(--text)}
 body[data-page=privacy] nav a[href="/privacy"],body[data-page=terms] nav a[href="/terms"],
-body[data-page=acceptable-use] nav a[href="/acceptable-use"]{background:var(--brand);color:var(--ink)}
+body[data-page=acceptable-use] nav a[href="/acceptable-use"]{background:var(--brand);color:#fff}
 main{max-width:860px;margin:0 auto;padding:40px 20px 80px}
 article{display:none}
 body[data-page=privacy] #privacy,body[data-page=terms] #terms,body[data-page=acceptable-use] #acceptable-use{display:block}
 h1{font-size:clamp(30px,4vw,40px);line-height:1.15;letter-spacing:-.03em;margin:0 0 6px;color:var(--ink)}
 .updated{color:var(--faint);font-size:14px;margin:0 0 28px}
 h2{font-size:19px;letter-spacing:-.01em;margin:34px 0 8px;color:var(--ink)}
-p,li{color:#0B1D4D}
+p,li{color:var(--c-text-dim)}
 ul{padding-left:20px}
 li{margin:4px 0}
-.box{background:var(--muted);border-radius:12px;padding:16px 18px;margin:18px 0}
+.box{background:var(--muted);border:1px solid var(--c-border);border-radius:12px;padding:16px 18px;margin:18px 0}
 .caps{font-weight:600}
-footer.site{background:#0B1D4D;color:#9FB4D8;padding:56px 0 28px;font-size:14px}
+footer.site{background:var(--c-bg);color:var(--c-text-dim);padding:56px 0 28px;font-size:14px}
 footer.site .fwrap{max-width:1160px;margin:0 auto;padding:0 24px}
 footer.site .fgrid{display:grid;grid-template-columns:1.4fr repeat(3,1fr);gap:32px}
 footer.site .fbrand img{height:64px;display:block;margin-bottom:14px}
-footer.site .fbrand p{max-width:300px;line-height:1.6;margin:0 0 18px;color:#9FB4D8}
-footer.site .fbrand a.fcta{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border-radius:10px;background:linear-gradient(135deg,#2563EB,#59A4FF);color:#fff;font-weight:600;text-decoration:none;transition:background-color .15s ease}
-footer.site .fbrand a.fcta:hover{background:#59A4FF}
+footer.site .fbrand p{max-width:300px;line-height:1.6;margin:0 0 18px;color:var(--c-text-dim)}
+footer.site .fbrand a.fcta{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border-radius:10px;background:linear-gradient(135deg,var(--c-brand),var(--c-brand-hi));color:#fff;font-weight:600;text-decoration:none;transition:background-color .15s ease}
+footer.site .fbrand a.fcta:hover{background:var(--c-brand-hi)}
 footer.site h4{font-size:13px;font-weight:600;color:#fff;margin:4px 0 14px}
 footer.site ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}
-footer.site ul a{color:#9FB4D8;text-decoration:none;transition:color .15s ease}
-footer.site ul a:hover{color:#2563EB}
-footer.site .fbottom{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:44px;padding-top:20px;border-top:1px solid rgba(255,255,255,.08);font-size:13px;color:#6C82AB}
+footer.site ul a{color:var(--c-text-dim);text-decoration:none;transition:color .15s ease}
+footer.site ul a:hover{color:var(--c-brand-hi)}
+footer.site .fbottom{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:44px;padding-top:20px;border-top:1px solid rgba(255,255,255,.08);font-size:13px;color:var(--c-text-faint)}
 @media (max-width:760px){footer.site .fgrid{grid-template-columns:1fr 1fr}footer.site .fbrand{grid-column:1/-1}}
 html{scroll-behavior:smooth}
 article{animation:legalin .35s ease both}
@@ -53,7 +54,7 @@ article{animation:legalin .35s ease both}
 </style>
 </head>
 <body data-page="{{PAGE}}">
-<header><div class="bar"><a href="/" aria-label="Creative Cut home"><img src="/brand/logo.svg" alt="Creative Cut" width="120" height="30"></a>
+<header><div class="bar"><a href="/" aria-label="Creative Cut home"><img src="/brand/logo-light.svg" alt="Creative Cut" width="120" height="30"></a>
   <nav aria-label="Legal pages"><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/acceptable-use">Acceptable use</a></nav></div></header>
 <main>
 

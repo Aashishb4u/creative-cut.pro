@@ -46,8 +46,10 @@ A short map for contributors and AI coding assistants.
   step cannot open paths longer than 260 characters on Windows.
 - **Secrets** are read from the environment or from files named by `*_FILE` settings. Never write a key, a real
   address or a personal path into a tracked file.
-- **Pages** are plain HTML, CSS and JavaScript. The look is the blue SaaS style: blue `#2563EB` to `#59A4FF` gradient,
-  navy `#0B1D4D` text, soft light-blue cards, Montserrat. Shadows are soft and blue-tinted only; hover states change colour.
+- **Pages** are plain HTML, CSS and JavaScript. The look is dark violet with a red accent (Montserrat). **Every colour lives in
+  `web/theme.css`** as `--c-*` names; pages, the 3D hero, the animated background and the emails read from it, so never type a
+  colour into a page. The logo files and favicon in `web/brand/` are pictures: redo them if the brand colour changes.
+  `tests/test_theme.py` guards this. Shadows are soft; hover states change colour.
 - **Free plan** (`plan.py`): `CREATIVECUT_FREE_VIDEOS` finished videos per account (default 5) and `CREATIVECUT_CLIPS_PER_VIDEO`
   clips per video (default 3). One video at a time per person; `jobs.cancel` stops one at its next step (`_set` raises `Cancelled`).
 - **Space is limited per person** (`storage.py`, `CREATIVECUT_MAX_USER_MB`, 100 by default): over it, their oldest finished videos

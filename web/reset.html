@@ -10,46 +10,47 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/theme.css">
 <style>
-:root{--brand:#2563EB;--brand-hi:#59A4FF;--ink:#0B1D4D;--soft:#EAF3FF;--line-b:#CFE3FF;--deep:#1E4FBF;
-  --frame:#1D4FD8;--frame-2:#2563EB;--frame-text:#FFFFFF;--frame-dim:#CFE3FF;
-  --muted:#F0F7FF;--line:#DCEBFF;--line-2:#C9DDF7;--text:#0B1D4D;--dim:#52668F;--faint:#8A9BBD;--bad:#D3343F;--bad-soft:#FDECEE;
-  --r-lg:16px;--r:12px;--r-sm:8px;color-scheme:light}
+:root{--brand:var(--c-brand);--brand-hi:var(--c-brand-hi);--ink:#FFFFFF;--soft:rgba(var(--c-brand-rgb),.16);--line-b:rgba(var(--c-brand-rgb),.5);--deep:var(--c-brand-hi);
+  --frame:var(--c-bg);--frame-2:var(--c-surface-2);--frame-text:#FFFFFF;--frame-dim:var(--c-text-dim);
+  --muted:var(--c-surface-2);--line:rgba(255,255,255,.1);--line-2:rgba(255,255,255,.16);--text:#FFFFFF;--dim:var(--c-text-dim);--faint:var(--c-text-faint);--bad:var(--c-bad);--bad-soft:rgba(255,90,106,.16);
+  --r-lg:16px;--r:12px;--r-sm:8px;color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html{scroll-behavior:smooth}
-body{margin:0;background:#fff;color:var(--text);font:16px/1.55 "Montserrat","Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body{margin:0;background:var(--c-surface);color:var(--text);font:16px/1.55 "Montserrat","Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 h1,h2,h3,p{margin:0}
 a{color:inherit}
 svg{width:18px;height:18px;flex:none;fill:currentColor}
 :focus-visible{outline:2px solid var(--brand);outline-offset:2px}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 20px;border-radius:var(--r);border:1px solid var(--line-2);background:#fff;color:var(--text);
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 20px;border-radius:var(--r);border:1px solid var(--line-2);background:var(--c-surface);color:var(--text);
   font:inherit;font-weight:600;font-size:15px;cursor:pointer;text-decoration:none;white-space:nowrap;transition:background-color .15s ease,border-color .15s ease,color .15s ease}
-.btn:hover{background:var(--muted);border-color:#B5CBEA}
-.btn.primary{background:linear-gradient(135deg,#2563EB,#59A4FF);border-color:var(--brand);color:#fff}
+.btn:hover{background:var(--muted);border-color:var(--c-border-2)}
+.btn.primary{background:linear-gradient(135deg,var(--c-brand),var(--c-brand-hi));border-color:var(--brand);color:#fff}
 .btn.primary:hover{background:var(--brand-hi);border-color:var(--brand-hi)}
-.btn.dark{background:var(--ink);border-color:var(--ink);color:#fff}.btn.dark:hover{background:#0B1D4D;border-color:#0B1D4D}
+.btn.dark{background:var(--ink);border-color:var(--ink);color:#fff}.btn.dark:hover{background:#FFFFFF;border-color:#FFFFFF}
 .btn.sm{height:38px;padding:0 14px;font-size:14px}
 .btn.lg{height:52px;padding:0 26px;font-size:16px}
 .btn:disabled{opacity:.5;cursor:default}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
-body{min-height:100vh;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);background:linear-gradient(160deg,#1D4FD8 0%,#2E6FF1 55%,#59A4FF 100%)}
+body{min-height:100vh;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);background:radial-gradient(900px 520px at 50% -8%,rgba(var(--c-brand-rgb),.26),transparent 62%),linear-gradient(180deg,var(--c-bg) 0%,var(--c-bg-mid) 48%,var(--c-bg-end) 100%)}
 .side{color:var(--frame-text);padding:40px 48px;display:flex;flex-direction:column;justify-content:space-between;min-height:100vh}
 .side img{height:84px}
 .side h1{font-size:clamp(30px,3.2vw,42px);line-height:1.1;letter-spacing:-.03em;font-weight:700;color:#fff;max-width:440px}
-.side h1 em{font-style:normal;color:#BFE0FF}
+.side h1 em{font-style:normal;color:var(--c-tint-2)}
 .side ul{list-style:none;padding:0;margin:28px 0 0;display:flex;flex-direction:column;gap:14px;color:var(--frame-dim);font-size:16px}
 .side li{display:flex;gap:12px;align-items:flex-start}.side li svg{color:var(--brand);margin-top:3px}
 .side small{color:var(--frame-dim);font-size:13px}
-.main{background:#fff;margin:8px 8px 8px 0;border-radius:var(--r-lg);display:grid;place-items:center;padding:32px 20px}
+.main{background:var(--c-surface);margin:8px 8px 8px 0;border-radius:var(--r-lg);display:grid;place-items:center;padding:32px 20px}
 .card{width:100%;max-width:400px}
 .card h2{font-size:28px;font-weight:700;letter-spacing:-.03em;color:var(--ink)}
 .card>p{color:var(--dim);margin:8px 0 26px}
 form{display:flex;flex-direction:column;gap:16px}
 label{display:flex;flex-direction:column;gap:7px;font-size:13px;font-weight:600;color:var(--dim)}
-input{height:46px;padding:0 14px;border-radius:var(--r-sm);border:1px solid var(--line-2);background:#fff;font:inherit;color:var(--text);outline:none;transition:border-color .15s ease,background-color .15s ease}
-input:hover{border-color:#B5CBEA}input:focus{border-color:var(--brand);background:#fff}
+input{height:46px;padding:0 14px;border-radius:var(--r-sm);border:1px solid var(--line-2);background:var(--c-surface);font:inherit;color:var(--text);outline:none;transition:border-color .15s ease,background-color .15s ease}
+input:hover{border-color:var(--c-border-2)}input:focus{border-color:var(--brand);background:var(--c-surface)}
 input:focus-visible{outline:none}
 input::placeholder{color:var(--faint)}
 .btn{width:100%;height:48px}
@@ -66,7 +67,7 @@ input::placeholder{color:var(--faint)}
 .legal a{color:var(--dim)}
 .g{width:20px;height:20px}
 .mobile-logo{display:none;height:64px;width:auto}
-@media (max-width:860px){body{grid-template-columns:1fr;background:#fff}.side{display:none}.main{margin:0;border-radius:0;min-height:100vh;align-content:center}.mobile-logo{display:block;height:34px;margin-bottom:28px}}
+@media (max-width:860px){body{grid-template-columns:1fr;background:radial-gradient(900px 520px at 50% -8%,rgba(var(--c-brand-rgb),.26),transparent 62%),linear-gradient(180deg,var(--c-bg) 0%,var(--c-bg-mid) 48%,var(--c-bg-end) 100%)}.side{display:none}.main{margin:0;border-radius:0;min-height:100vh;align-content:center}.mobile-logo{display:block;height:34px;margin-bottom:28px}}
 </style>
 </head>
 <body>
@@ -83,7 +84,7 @@ input::placeholder{color:var(--faint)}
   <small>© <span id="year"></span> Creative Cut · <a href="/privacy" style="color:inherit">Privacy</a> · <a href="/terms" style="color:inherit">Terms</a></small>
 </aside>
 <main class="main"><div class="card">
-  <a href="/"><img class="mobile-logo" src="/brand/logo.svg" alt="Creative Cut"></a>
+  <a href="/"><img class="mobile-logo" src="/brand/logo-light.svg" alt="Creative Cut"></a>
   <h2 id="h">Reset your password</h2><p id="p">Enter the email you signed up with and we'll send you a link to choose a new password.</p>
   <form id="ask" novalidate>
     <div class="err" id="err" role="alert"></div>

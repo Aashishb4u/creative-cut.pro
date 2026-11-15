@@ -11,20 +11,25 @@ function start() {
   const renderer = new THREE.WebGLRenderer({canvas, antialias: true, alpha: true, powerPreference: "high-performance"});
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+  // Colours come from web/theme.css, so changing them there changes the 3D hero too.
+  const css = getComputedStyle(document.documentElement);
+  const T = (n, fb) => (css.getPropertyValue("--c-" + n).trim() || fb);
+  const hexInt = (n, fb) => parseInt(T(n, fb).replace("#", ""), 16);
+  const BRAND = T("brand", "#E8175D"), BRAND_RGB = T("brand-rgb", "232,23,93"), ACCENT = T("accent", "#FFD23F"), INK = T("ink", "#15110F");
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
   camera.position.set(0, 0.25, 11.5);
 
   scene.add(new THREE.AmbientLight(0xffffff, 1.25));
   const key = new THREE.DirectionalLight(0xffffff, 1.9); key.position.set(3, 5, 7); scene.add(key);
-  const rim = new THREE.PointLight(0xe8175d, 22, 22); rim.position.set(-5, 1.5, 5); scene.add(rim);
-  const gold = new THREE.PointLight(0xffd23f, 10, 18); gold.position.set(5, -2, 4); scene.add(gold);
+  const rim = new THREE.PointLight(hexInt("brand", "#E8175D"), 22, 22); rim.position.set(-5, 1.5, 5); scene.add(rim);
+  const gold = new THREE.PointLight(hexInt("accent", "#FFD23F"), 10, 18); gold.position.set(5, -2, 4); scene.add(gold);
 
   // ---- the clips: each is a finished vertical clip drawn on a canvas, with a hook, a score and captions
   const CLIPS = [
-    {src: "/clips/hero_clips_1.mp4", bg: ["#FFD23F", "#FF7A1F", "#E8175D"], hook: "WAIT FOR IT", score: 94, words: ["THIS", "CHANGES"]},
-    {src: "/clips/hero_clips_2.mp4", bg: ["#FF5A7A", "#E8175D", "#3D1466"], hook: "HE SAID WHAT", score: 91, words: ["NOBODY", "EXPECTED"]},
-    {src: "/clips/hero_clips_3.mp4", bg: ["#7A2BD0", "#E8175D", "#15110F"], hook: "NOBODY SAW THIS", score: 88, words: ["THE", "FINISH"]}
+    {src: "/clips/hero_clips_1.mp4", bg: [T("accent","#FFD23F"), T("orange","#FF7A1F"), BRAND], hook: "WAIT FOR IT", score: 94, words: ["THIS", "CHANGES"]},
+    {src: "/clips/hero_clips_2.mp4", bg: [T("brand-hi","#FF3D7A"), BRAND, T("bg-end","#1F0B40")], hook: "HE SAID WHAT", score: 91, words: ["NOBODY", "EXPECTED"]},
+    {src: "/clips/hero_clips_3.mp4", bg: [T("violet","#7A2BD0"), BRAND, INK], hook: "NOBODY SAW THIS", score: 88, words: ["THE", "FINISH"]}
   ];
   const W = 540, H = 960, R = 56;
 
@@ -48,12 +53,12 @@ function start() {
     g.font = "400 46px 'Archivo Black', Montserrat, sans-serif";
     const hw = g.measureText(c.hook).width + 60;
     roundRect(g, (W - hw) / 2, H * 0.1, hw, 88, 22); g.fillStyle = "#FFFFFF"; g.fill();
-    g.fillStyle = "#15110F"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(c.hook, W / 2, H * 0.1 + 46);
+    g.fillStyle = INK; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(c.hook, W / 2, H * 0.1 + 46);
     // captions, the second word highlighted
-    g.font = "400 84px 'Archivo Black', Montserrat, sans-serif"; g.lineWidth = 14; g.strokeStyle = "#15110F";
+    g.font = "400 84px 'Archivo Black', Montserrat, sans-serif"; g.lineWidth = 14; g.strokeStyle = INK;
     c.words.forEach((w, k) => {
       const y = H * 0.8 + k * 88;
-      g.strokeText(w, W / 2, y); g.fillStyle = k === 1 ? "#FFD23F" : "#FFFFFF"; g.fillText(w, W / 2, y);
+      g.strokeText(w, W / 2, y); g.fillStyle = k === 1 ? ACCENT : "#FFFFFF"; g.fillText(w, W / 2, y);
     });
     // score badge
     roundRect(g, 26, 26, 150, 60, 30); g.fillStyle = "rgba(20,10,20,.8)"; g.fill();
@@ -71,7 +76,7 @@ function start() {
   const CW = 2.3, CH = CW * (H / W);
   const faceGeo = new THREE.PlaneGeometry(CW, CH);
   const backGeo = new THREE.PlaneGeometry(CW + 0.1, CH + 0.1);
-  const backMat = new THREE.MeshBasicMaterial({color: 0x15110f});
+  const backMat = new THREE.MeshBasicMaterial({color: hexInt("ink", "#15110F")});
   const cards = [];
   const carousel = new THREE.Group();
   scene.add(carousel);
@@ -79,7 +84,7 @@ function start() {
   // a soft red halo behind the clips, so the stage has depth and the front clip reads as the hero
   const haloCv = document.createElement("canvas"); haloCv.width = haloCv.height = 512;
   const hg = haloCv.getContext("2d"), grd = hg.createRadialGradient(256, 256, 0, 256, 256, 256);
-  grd.addColorStop(0, "rgba(232,23,93,.55)"); grd.addColorStop(0.45, "rgba(232,23,93,.18)"); grd.addColorStop(1, "rgba(232,23,93,0)");
+  grd.addColorStop(0, `rgba(${BRAND_RGB},.55)`); grd.addColorStop(0.45, `rgba(${BRAND_RGB},.18)`); grd.addColorStop(1, `rgba(${BRAND_RGB},0)`);
   hg.fillStyle = grd; hg.fillRect(0, 0, 512, 512);
   const halo = new THREE.Mesh(new THREE.PlaneGeometry(12, 9), new THREE.MeshBasicMaterial({map: new THREE.CanvasTexture(haloCv), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.9}));
   halo.position.set(0, 0, -4.5);
@@ -91,7 +96,7 @@ function start() {
   function build() {
     CLIPS.forEach((c, i) => {
       const group = new THREE.Group();
-      const face = new THREE.Mesh(faceGeo, new THREE.MeshStandardMaterial({map: drawClip(c), transparent: true, roughness: 0.42, metalness: 0.02, emissive: 0xe8175d, emissiveIntensity: 0}));
+      const face = new THREE.Mesh(faceGeo, new THREE.MeshStandardMaterial({map: drawClip(c), transparent: true, roughness: 0.42, metalness: 0.02, emissive: hexInt("brand", "#E8175D"), emissiveIntensity: 0}));
       const back = new THREE.Mesh(backGeo, backMat);
       back.position.z = -0.02;
       group.add(back, face);

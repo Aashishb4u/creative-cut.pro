@@ -10,26 +10,28 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/theme.css">
 <style>
 :root{
-  --brand:#2563EB;--brand-press:#1D4FD8;--brand-ink:#0B1D4D;--brand-soft:#EAF3FF;--brand-line:#CFE3FF;--brand-deep:#1E4FBF;
-  --frame:#EEF5FF;--frame-2:#DCEBFF;--frame-line:rgba(11,29,77,.08);--frame-text:#0B1D4D;--frame-dim:#6C82AB;
-  --bg:#FFFFFF;--muted:#F0F7FF;--line:#DCEBFF;--line-2:#C9DDF7;
-  --text:#0B1D4D;--dim:#52668F;--faint:#8A9BBD;
-  --good:#0F8A57;--good-soft:#E6F6EE;--bad:#D3343F;--bad-soft:#FDECEE;
+  --brand:var(--c-brand);--brand-press:var(--c-brand-deep);--brand-ink:#FFFFFF;--brand-soft:rgba(var(--c-brand-rgb),.16);--brand-line:rgba(var(--c-brand-rgb),.5);--brand-deep:var(--c-brand-hi);
+  --panel:var(--c-surface);--panel-2:var(--c-surface-2);
+  --frame:var(--c-bg);--frame-2:rgba(255,255,255,.06);--frame-line:rgba(255,255,255,.1);--frame-text:#FFFFFF;--frame-dim:var(--c-text-dim);
+  --bg:var(--c-surface-3);--muted:var(--c-surface-2);--line:rgba(255,255,255,.1);--line-2:rgba(255,255,255,.16);
+  --text:#FFFFFF;--dim:var(--c-text-dim);--faint:var(--c-text-faint);
+  --good:var(--c-good);--good-soft:rgba(57,217,138,.15);--bad:var(--c-bad);--bad-soft:rgba(255,90,106,.16);
   --r-lg:16px;--r:12px;--r-sm:8px;
-  color-scheme:light;
+  color-scheme:dark;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{height:100%}
-body{margin:0;background:var(--frame);color:var(--text);font:14px/1.5 "Montserrat","Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
+body{margin:0;background:radial-gradient(900px 520px at 50% -8%,rgba(var(--c-brand-rgb),.26),transparent 62%),linear-gradient(180deg,var(--c-bg) 0%,var(--c-bg-mid) 48%,var(--c-bg-end) 100%) fixed;color:var(--text);font:14px/1.5 "Montserrat","Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
 h1,h2,h3,h4,p{margin:0}
 button,input,select,textarea{font:inherit;color:inherit}
 svg{width:18px;height:18px;flex:none;fill:currentColor}
 ::selection{background:var(--brand-line)}
 :focus-visible{outline:2px solid var(--brand);outline-offset:2px}
-::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#C9DDF7;border-radius:999px;border:3px solid #fff}
+::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--c-border);border-radius:999px;border:3px solid #fff}
 
 .app{display:grid;grid-template-columns:240px minmax(0,1fr);height:100vh}
 .side{background:var(--frame);color:var(--frame-text);display:flex;flex-direction:column;height:100vh;padding:14px 10px 12px;min-width:0}
@@ -44,7 +46,7 @@ svg{width:18px;height:18px;flex:none;fill:currentColor}
 .nav-item.on svg{color:var(--brand-ink)}
 .nav-item .label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .count{font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.1);color:var(--frame-text)}
-.nav-item.on .count{background:rgba(11,29,77,.14);color:var(--brand-ink)}
+.nav-item.on .count{background:rgba(255,255,255,.14);color:var(--brand-ink)}
 .side-foot{display:flex;flex-direction:column;gap:2px;padding-top:12px;border-top:1px solid var(--frame-line)}
 .who{padding:10px 10px 2px;font-size:12px;color:var(--frame-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .who b{display:block;font-size:13px;color:var(--frame-text);font-weight:600;overflow:hidden;text-overflow:ellipsis}
@@ -57,21 +59,21 @@ main{background:var(--bg);margin:8px 8px 8px 0;border-radius:var(--r-lg);height:
 .content{padding:22px 28px 60px;max-width:1320px}
 
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 14px;border-radius:var(--r);border:1px solid var(--line-2);background:#fff;color:var(--text);cursor:pointer;text-decoration:none;white-space:nowrap;font-weight:600;transition:background-color .15s ease,border-color .15s ease,color .15s ease}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 14px;border-radius:var(--r);border:1px solid var(--line-2);background:var(--panel);color:var(--text);cursor:pointer;text-decoration:none;white-space:nowrap;font-weight:600;transition:background-color .15s ease,border-color .15s ease,color .15s ease}
 .btn:hover{background:var(--muted)}
-.btn.primary{background:linear-gradient(135deg,#2563EB,#59A4FF);border-color:var(--brand);color:#fff}
-.btn.primary:hover{background:#59A4FF;border-color:#59A4FF}
-.btn.primary:disabled{background:#DCEBFF;border-color:#DCEBFF;color:#8FA6CF;cursor:not-allowed}
+.btn.primary{background:linear-gradient(135deg,var(--c-brand),var(--c-brand-hi));border-color:var(--brand);color:#fff}
+.btn.primary:hover{background:var(--c-brand-hi);border-color:var(--c-brand-hi)}
+.btn.primary:disabled{background:var(--c-border);border-color:var(--c-border);color:var(--c-text-faint);cursor:not-allowed}
 .btn.danger{background:var(--bad-soft);border-color:transparent;color:var(--bad)}
-.btn.danger:hover{background:#FADDE0}
+.btn.danger:hover{background:#3A1220}
 .btn.sm{height:32px;padding:0 11px;font-size:13px;gap:6px}
 .btn.sm svg{width:16px;height:16px}
-input[type=text],input[type=search],input[type=number],textarea{height:38px;padding:0 12px;border-radius:var(--r);border:1px solid var(--line-2);background:#fff;width:100%;transition:border-color .15s ease}
-input:hover,textarea:hover{border-color:#B5CBEA}
+input[type=text],input[type=search],input[type=number],textarea{height:38px;padding:0 12px;border-radius:var(--r);border:1px solid var(--line-2);background:var(--panel);width:100%;transition:border-color .15s ease}
+input:hover,textarea:hover{border-color:var(--c-border-2)}
 input:focus,textarea:focus{outline:0;border-color:var(--brand)}
 label.f{display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--dim);font-weight:600}
 
-.card{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:22px;margin-bottom:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:22px;margin-bottom:16px}
 .card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:18px}
 .card-head h2{font-size:15px;font-weight:600;color:var(--brand-ink)}
 .help,.sub{color:var(--dim);font-size:13px}
@@ -84,7 +86,7 @@ label.f{display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--di
 .empty b{display:block;color:var(--brand-ink);font-size:15px;margin-bottom:2px}
 
 .tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:16px}
-.tile{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;display:flex;flex-direction:column;min-width:0}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;display:flex;flex-direction:column;min-width:0}
 .tile i{width:32px;height:32px;border-radius:var(--r-sm);background:var(--brand-soft);color:var(--brand-deep);display:grid;place-items:center;margin-bottom:14px}
 .tile b{font-size:26px;font-weight:600;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--brand-ink);line-height:1.1}
 .tile span{font-size:13px;color:var(--dim);margin-top:2px}
@@ -110,17 +112,17 @@ td{padding:12px 10px;border-top:1px solid var(--line);vertical-align:middle}
 td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 td.acts{text-align:right;white-space:nowrap}
 tr.u{cursor:pointer}
-tr.u:hover>td{background:#F8FBFF}
+tr.u:hover>td{background:var(--c-surface)}
 td .em{font-size:12px;color:var(--dim);overflow-wrap:anywhere}
 td b{color:var(--brand-ink);font-weight:600}
 .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
 .toolbar input{max-width:340px}
 .seg{display:flex;gap:2px;padding:3px;background:var(--muted);border-radius:11px}
 .seg button{height:32px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:var(--dim);font-size:13px;font-weight:600;cursor:pointer;transition:background-color .15s ease,color .15s ease}
-.seg button:hover{background:#E3EEFF;color:var(--text)}
+.seg button:hover{background:var(--c-surface-2);color:var(--text)}
 .seg button.on{background:var(--brand);color:var(--brand-ink)}
 
-dialog{border:1px solid var(--line);background:#fff;color:var(--text);border-radius:var(--r-lg);padding:0;max-width:calc(100vw - 32px)}
+dialog{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:var(--r-lg);padding:0;max-width:calc(100vw - 32px)}
 dialog::backdrop{background:rgba(8,21,56,.42)}
 .dlg{padding:24px;width:460px;max-width:100%;display:flex;flex-direction:column;gap:14px}
 .dlg.wide{width:720px;max-height:calc(100vh - 48px);overflow:auto}
@@ -131,7 +133,7 @@ dialog::backdrop{background:rgba(8,21,56,.42)}
 .facts div{background:var(--muted);border-radius:var(--r-sm);padding:10px 12px}
 .facts b{display:block;font-size:17px;color:var(--brand-ink);font-variant-numeric:tabular-nums}
 .facts span{font-size:12px;color:var(--dim)}
-.note{background:var(--brand-soft);color:#1E4FBF;border-radius:var(--r-sm);padding:10px 12px;font-size:13px}
+.note{background:var(--brand-soft);color:var(--c-brand-hi);border-radius:var(--r-sm);padding:10px 12px;font-size:13px}
 #toasts{position:fixed;right:20px;bottom:20px;display:flex;flex-direction:column;gap:8px;z-index:50}
 .toast{background:var(--frame);color:var(--frame-text);border:1px solid var(--frame-2);border-radius:var(--r);padding:12px 16px;max-width:380px;display:flex;gap:10px;align-items:center;font-weight:500}
 .toast::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--brand);flex:none}
@@ -165,7 +167,7 @@ dialog::backdrop{background:rgba(8,21,56,.42)}
 <body>
 <div class="app">
   <aside class="side" aria-label="Sidebar">
-    <div class="side-head"><img class="logo" src="/brand/logo.svg" alt="Creative Cut"></div>
+    <div class="side-head"><img class="logo" src="/brand/logo-light.svg" alt="Creative Cut"></div>
     <nav class="nav" id="nav" aria-label="Admin"></nav>
     <div class="side-foot" id="foot"></div>
   </aside>

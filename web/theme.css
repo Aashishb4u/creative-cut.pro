@@ -1,0 +1,49 @@
+/* ==========================================================================================================
+   Creative Cut: every colour of the site, in one place.
+   The landing page, the app, sign-in, reset, admin and legal pages, the 3D hero, the animated home background
+   and the emails all read these values. Change one here and it changes everywhere (reload; emails after a restart).
+
+   Not controlled from here, because they are pictures: the logo files and the favicon in web/brand/.
+   Sample clip art in the 3D hero (hero3d.js) uses the brand and accent colours below plus a few fixed tones.
+   Keep the names: pages refer to them as var(--c-...).
+   ========================================================================================================== */
+:root{
+  /* the brand: buttons, links, highlights */
+  --c-brand:#E8175D;          /* main colour */
+  --c-brand-hi:#FF3D7A;       /* lighter: hovers, accents on dark */
+  --c-brand-deep:#B00F45;     /* darker: pressed buttons */
+  --c-brand-rgb:232,23,93;    /* the main colour as numbers, for see-through versions: rgba(var(--c-brand-rgb),.2) */
+  --c-tint:#FFB3C6;           /* very light brand tint */
+  --c-tint-2:#FF8FA8;         /* light brand tint */
+
+  /* accents: used sparingly (highlights, tags, charts) */
+  --c-accent:#FFD23F;         /* sunshine yellow */
+  --c-lime:#B8FF3D;
+  --c-orange:#FF7A1F;
+  --c-violet:#7A2BD0;
+
+  /* the dark background, top to bottom of the page */
+  --c-bg:#0B0A24;
+  --c-bg-mid:#140F38;
+  --c-bg-end:#1F0B40;
+
+  /* cards, panels and inputs, from the page outward */
+  --c-surface-3:#15113A;      /* the app's main area */
+  --c-surface:#1A1647;        /* cards */
+  --c-surface-2:#221C56;      /* raised: menus, chips, hovered cards */
+  --c-border:#3A3470;
+  --c-border-2:#4A4488;
+  --c-line:rgba(255,255,255,.1);
+  --c-line-2:rgba(255,255,255,.16);
+
+  /* text */
+  --c-text:#FFFFFF;
+  --c-text-dim:#BDB8DE;
+  --c-text-faint:#8A84B5;
+  --c-ink:#15110F;            /* dark text on light shapes (white pills, badges) */
+
+  /* status */
+  --c-good:#39D98A;
+  --c-bad:#FF5A6A;
+  --c-live:#E5323F;
+}
