@@ -29,7 +29,7 @@ A short map for contributors and AI coding assistants.
 | `studio/auth.py`, `studio/account.py`, `studio/admin.py` | Sign-in, deleting things, the admin dashboard |
 | `studio/db.py` | Database tables (SQLAlchemy core; SQLite or PostgreSQL) |
 | `web/index.html` | The whole signed-in app, one file, no build step |
-| `web/landing.html` | The public front page: one file, plain CSS and JavaScript, no 3D. Its own colours and type are set in its `:root` block |
+| `web/landing.html`, `web/hero3d.js` | The public front page. Its hero has a three.js clip carousel (`web/hero3d.js`, with `web/three-r170.js` kept locally because the security policy only allows scripts from this server). Its own colours and type are in its `:root` block |
 
 ## Rules worth knowing
 

@@ -248,6 +248,17 @@ footer.site{border-top:1px solid var(--line2);padding:56px 0 30px;background:rgb
 /* reveal on scroll (only when JavaScript runs) */
 .js .reveal{opacity:0;transform:translateY(16px);transition:opacity .7s var(--ease),transform .7s var(--ease);transition-delay:var(--d,0s)}
 .js .reveal.in{opacity:1;transform:none}
+
+/* 3D stage: the hero's clip carousel (web/hero3d.js) */
+.stage-wrap{position:relative;height:clamp(440px,44vw,580px);min-width:0}
+#hero3d{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;cursor:grab;outline:none;border-radius:24px}
+#hero3d:focus-visible{box-shadow:0 0 0 3px rgba(232,23,93,.5)}
+.stage-hint{position:absolute;left:0;right:0;bottom:-6px;text-align:center;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);pointer-events:none}
+.watch{padding:clamp(40px,6vw,72px) 0 clamp(64px,8vw,104px)}
+.watch-frame{width:100%;max-width:1000px;margin:0 auto}
+.watch-frame .frame{width:100%}
+@media (max-width:900px){.stage-wrap{height:460px;max-width:520px;margin:0 auto;width:100%}}
+@media (max-width:560px){.stage-wrap{height:400px}}
 </style>
 
 </head>
@@ -277,8 +288,19 @@ footer.site{border-top:1px solid var(--line2);padding:56px 0 30px;background:rgb
       <li><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.2 4.2L19 7"/></svg>Runs on your own server</li>
     </ul>
   </div>
-  <div class="reveal" style="--d:.12s">
-    <div class="frame is-16x9" id="heroFrame" data-video="/brand/hero.mp4">
+  <div class="reveal stage-wrap" style="--d:.12s">
+    <canvas id="hero3d" role="img" aria-label="Three finished clips. Drag them, or click a side clip to bring it forward." tabindex="0"></canvas>
+    <p class="stage-hint" aria-hidden="true">Drag or tap the clips</p>
+  </div>
+</div></section>
+
+<section class="watch" id="watch"><div class="wrap">
+  <div class="sec-head reveal">
+    <span class="eyebrow">Watch it work</span>
+    <h2>One stream in. Clips out.</h2>
+  </div>
+  <div class="watch-frame reveal">
+<div class="frame is-16x9" id="heroFrame" data-video="/brand/hero.mp4">
       <span class="frame-tag">Your footage</span>
       <div class="slot-ph">
         <span class="play" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.7l-12-7.5A1 1 0 0 0 7 4.5z"/></svg></span>
@@ -286,7 +308,7 @@ footer.site{border-top:1px solid var(--line2);padding:56px 0 30px;background:rgb
         <span>16:9 · add web/brand/hero.mp4</span>
       </div>
       <div class="frame-bar" aria-hidden="true"><span>0:12</span><i></i><span>3:42:10</span></div>
-    </div>
+      </div>
   </div>
 </div></section>
 
@@ -505,5 +527,6 @@ document.querySelectorAll(".frame[data-video]").forEach(slot => {
   v.src = src; slot.prepend(v);
 });
 </script>
+<script type="module" src="/assets/hero3d.js?v=1"></script>
 </body>
 </html>
