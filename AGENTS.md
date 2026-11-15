@@ -29,6 +29,7 @@ A short map for contributors and AI coding assistants.
 | `studio/auth.py`, `studio/account.py`, `studio/admin.py` | Sign-in, deleting things, the admin dashboard |
 | `studio/db.py` | Database tables (SQLAlchemy core; SQLite or PostgreSQL) |
 | `web/index.html` | The whole signed-in app, one file, no build step |
+| `web/landing.html`, `web/landing3d.js` | The public front page and its scroll-driven 3D story (three.js, kept in `web/three-r170.js` because the page's security policy allows only scripts from this server). Bump the `?v=` on its script tag after changing `landing3d.js` |
 
 ## Rules worth knowing
 

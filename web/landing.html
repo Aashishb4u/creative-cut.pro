@@ -17,7 +17,6 @@
 <meta name="twitter:title" content="Creative Cut: clip live streams while they're still live">
 <meta name="twitter:description" content="AI stream clipper for Twitch, Kick and YouTube. Captioned vertical clips. Free and open source.">
 <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg">
-<link rel="preload" as="image" href="/brand/demo-hype.jpg" fetchpriority="high">
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Creative Cut", "applicationCategory": "MultimediaApplication", "operatingSystem": "Web browser", "url": "{{SITE}}/", "image": "{{SITE}}/brand/logo.svg", "description": "Free, open source AI clip maker that turns Twitch, Kick and YouTube live streams and videos into captioned vertical clips for YouTube Shorts, Instagram Reels and TikTok.", "isAccessibleForFree": true, "featureList": ["Clips live streams while they are live", "AI picks the best moments", "Word-by-word captions", "Vertical 9:16 clips", "Twitch, Kick and YouTube", "Posts to YouTube Shorts and Instagram Reels", "Works with your own AI key"]}</script>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "Organization", "name": "Creative Cut", "url": "{{SITE}}/", "logo": "{{SITE}}/brand/logo.svg"}</script>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "Is Creative Cut free?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Creative Cut is free and open source. You run it on your own computer or server, and there are no plans or fees."}}, {"@type": "Question", "name": "Which AI does it use?", "acceptedAnswer": {"@type": "Answer", "text": "Your own. Add an API key for Gemini, OpenAI, Grok, Claude or OpenRouter, or point it at a local model. Whatever the AI costs is between you and that provider."}}, {"@type": "Question", "name": "What happens without an AI key?", "acceptedAnswer": {"@type": "Answer", "text": "Creative Cut still makes clips, picking the loudest moments that have speech in them. Add a key and the AI chooses the moments and writes the hooks and titles."}}, {"@type": "Question", "name": "Which videos work best?", "acceptedAnswer": {"@type": "Answer", "text": "Anything with people talking and reacting: live streams, gaming VODs, podcasts, interviews. Links can be from YouTube, Twitch or Kick. Captions are written from English speech."}}, {"@type": "Question", "name": "How long are the clips, and what shape?", "acceptedAnswer": {"@type": "Answer", "text": "Vertical 9:16, the shape Shorts, Reels and TikTok use. They run 15 to 60 seconds by default and you can set your own range. Choose a blurred fill, a zoomed frame or a centre crop."}}, {"@type": "Question", "name": "Can I change a clip afterwards?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Open any clip to trim the start and end, rewrite the hook and title, or switch caption style and layout, then re-make it."}}, {"@type": "Question", "name": "Can I clip any streamer?", "acceptedAnswer": {"@type": "Answer", "text": "Creative Cut is a tool. You are responsible for having the right to clip and post a creator's content; most clipping programs ask you to follow the creator's own rules."}}]}</script>
@@ -25,7 +24,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script>document.documentElement.classList.add("js")</script>
-<script src="/assets/gradient-ascii.js" defer></script>
+<script type="module" src="/assets/landing3d.js?v=4"></script>
 <style>
 :root{--brand:#2563EB;--brand-hi:#59A4FF;--ink:#0B1D4D;--soft:#EAF3FF;--line-b:#CFE3FF;--deep:#1E4FBF;
   --frame:#0B1D4D;--frame-2:#12307A;--frame-text:#FFFFFF;--frame-dim:#9FB4D8;
@@ -271,6 +270,53 @@ details p{color:var(--dim);margin-top:12px;font-size:16px}
 }
 @media (max-width:560px){.bar{border-radius:var(--r-lg);flex-basis:100%}.bar form{flex-direction:column;align-items:stretch}.bar .btn{width:100%;border-radius:var(--r)}.ask .or{display:none}.ask .up{width:100%;height:50px}header.nav .signin{display:none}.reel figure:not(.mid){display:none}.reel figure.mid{flex-basis:260px}.mock.result{grid-template-columns:110px 1fr}.mock.result video{width:110px}.trio b{font-size:36px}.notes span+span::before{display:none}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}.js .reveal,.js .ledger div{opacity:1;transform:none}.jb .t i{width:var(--v)}.meterbar i{width:70%}}
+
+/* ---------- 3D story: a fixed canvas behind the hero, pinned while the steps play */
+#stage3d{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;pointer-events:none;display:block;transition:opacity .2s linear}
+.hero,.hero-top{background:transparent}
+.hero{z-index:1;min-height:calc(100vh - 60px);overflow:visible}
+.story{z-index:1;padding:0;height:auto}
+.story-pin .wrap{padding-top:40px;padding-bottom:40px}
+.story-steps{list-style:none;margin:0 auto;padding:0;display:grid;gap:14px;max-width:760px}
+.story-steps li{display:flex;gap:16px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:18px 20px}
+.story-steps .n{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-weight:700;font-size:14px;color:#fff;background:linear-gradient(135deg,#2563EB,#59A4FF)}
+.story-steps h3{font-size:18px;font-weight:700;letter-spacing:-.02em;color:var(--ink);margin:0 0 4px}
+.story-steps p{margin:0;color:var(--dim);font-size:15px}
+.story-rail{display:none}
+.has3d .story{height:330vh}
+.has3d .story-pin{position:sticky;top:60px;height:calc(100vh - 60px);display:flex;align-items:center;pointer-events:none}
+.has3d .story-pin .wrap{width:100%;display:flex;align-items:center;gap:22px;padding-top:0;padding-bottom:0}
+.has3d .story-steps{margin:0;max-width:330px;gap:10px}
+.has3d .story-steps li{background:rgba(255,255,255,.82);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-color:var(--line);
+  opacity:.38;transform:translateX(-6px);transition:opacity .45s var(--ease),transform .45s var(--ease),border-color .45s ease,box-shadow .45s ease}
+.has3d .story-steps li.on{opacity:1;transform:none;border-color:#B8D6FF;box-shadow:0 10px 30px rgba(37,99,235,.14)}
+.has3d .story-rail{display:block;order:-1;width:3px;height:220px;border-radius:3px;background:var(--line);overflow:hidden;align-self:center}
+.has3d .story-rail i{display:block;width:100%;height:100%;background:linear-gradient(#2563EB,#59A4FF);transform:scaleY(0);transform-origin:top}
+@media (max-width:1099px){
+  .has3d .story{height:300vh}
+  .has3d .story-pin{align-items:flex-end}
+  .has3d .story-pin .wrap{padding-bottom:18px}
+  .has3d .story-rail{display:none}
+  .has3d .story-steps{max-width:560px;width:100%;margin:0 auto;display:block;position:relative;min-height:118px}
+  .has3d .story-steps li{position:absolute;left:0;right:0;bottom:0;opacity:0;transform:translateY(10px)}
+  .has3d .story-steps li.on{opacity:1;transform:none}
+}
+
+/* ---------- clip slots: empty phones until real clips are added (see the note in the page) */
+.clips{z-index:1;background:#fff;padding:72px 0 36px;text-align:center}
+.clips .reel{margin-top:30px;padding-bottom:20px}
+.phone.slot{background:linear-gradient(160deg,#EAF3FF 0%,#CFE3FF 55%,#B8D6FF 100%);display:grid;place-items:center;isolation:isolate}
+.phone.slot::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.65) 50%,transparent 70%);background-size:250% 100%;animation:shimmer 2.8s ease-in-out infinite}
+@keyframes shimmer{from{background-position:120% 0}to{background-position:-120% 0}}
+.ph-play{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#2563EB,#59A4FF);color:#fff;box-shadow:0 10px 24px rgba(37,99,235,.3)}
+.ph-play svg{width:24px;height:24px;margin-left:3px;fill:currentColor}
+.ph-lines{position:absolute;left:14%;right:14%;bottom:22%;display:grid;gap:7px;justify-items:center}
+.ph-lines i{display:block;height:9px;border-radius:5px;background:rgba(255,255,255,.85);width:80%}.ph-lines i+i{width:55%;background:rgba(255,216,77,.9)}
+.ph-t{position:absolute;top:14px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:11px;font-weight:600;color:var(--deep);background:rgba(255,255,255,.85);padding:3px 10px;border-radius:999px}
+.phone.slot.has-video{background:var(--frame)}
+.phone.slot.has-video>span,.phone.slot.has-video::before{display:none}
+.phone.slot video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+
 </style>
 </head>
 <body>
@@ -283,7 +329,7 @@ details p{color:var(--dim);margin-top:12px;font-size:16px}
 
 <main>
 <div class="hero">
-  <div class="hero-top"><div class="ga-bg" id="heroAscii" aria-hidden="true"></div>
+  <div class="hero-top">
   <div class="hero-copy">
     <a class="announce reveal" href="#live"><span class="livepill"><i></i>Live</span><span class="al">Clips YouTube, Twitch and Kick streams as they happen</span><span class="as">Clips streams as they happen</span> <b>See how <svg viewBox="0 0 256 256" aria-hidden="true"><path d="M221.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L196.69,136H40a8,8,0,0,1,0-16H196.69L138.34,61.66a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,221.66,133.66Z"/></svg></b></a>
     <h1 class="reveal" style="--d:.05s">Clip live streams <span class="hl">while they are still live</span></h1>
@@ -294,13 +340,31 @@ details p{color:var(--dim);margin-top:12px;font-size:16px}
       </div>
     <div class="notes reveal" style="--d:.28s"><span><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34ZM232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88,88,0,1,0-88,88A88.1,88.1,0,0,0,216,128Z"/></svg><span>Free and open source</span></span><span><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34ZM232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88,88,0,1,0-88,88A88.1,88.1,0,0,0,216,128Z"/></svg>Uses your own AI key</span><span><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34ZM232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88,88,0,1,0-88,88A88.1,88.1,0,0,0,216,128Z"/></svg>Runs on your own server</span></div>
   </div></div>
-  <div class="reel">
-    <figure class="reveal" style="--d:.1s"><div class="phone"><video src="/brand/demo-bounce.mp4" poster="/brand/demo-bounce.jpg" autoplay muted loop playsinline preload="metadata"></video></div><figcaption><b>Bounce</b><br>caption style</figcaption></figure>
-    <figure class="mid reveal" style="--d:.18s"><div class="phone"><video src="/brand/demo-hype.mp4" poster="/brand/demo-hype.jpg" autoplay muted loop playsinline preload="metadata"></video></div><figcaption><b>Hype</b><br>caption style</figcaption></figure>
-    <figure class="reveal" style="--d:.26s"><div class="phone"><video src="/brand/demo-clean.mp4" poster="/brand/demo-clean.jpg" autoplay muted loop playsinline preload="metadata"></video></div><figcaption><b>Clean</b><br>caption style</figcaption></figure>
-  </div>
-  <p class="reel-note">The three caption styles, rendered by Creative Cut itself.</p>
 </div>
+<canvas id="stage3d" aria-hidden="true"></canvas>
+<section class="story" id="story" aria-label="How one long video becomes clips">
+  <div class="story-pin"><div class="wrap">
+    <ol class="story-steps">
+      <li><span class="n">01</span><div><h3>One long video in</h3><p>Paste a link. Creative Cut writes down every word and marks where the room got loud.</p></div></li>
+      <li><span class="n">02</span><div><h3>The AI finds the moments</h3><p>Each stretch is scored for a hook in the first three seconds, a payoff, and a picture that moves.</p></div></li>
+      <li><span class="n">03</span><div><h3>Clips out, ready to post</h3><p>Every moment is cut to 9:16 with word-by-word captions and a hook. The long video is then deleted.</p></div></li>
+    </ol>
+    <div class="story-rail" aria-hidden="true"><i></i></div>
+  </div></div>
+</section>
+
+<section class="clips" id="clips"><div class="wrap">
+  <p class="kicker reveal">Made with Creative Cut</p>
+  <h2 class="reveal">Real clips, <span>straight out of the app.</span></h2>
+  <!-- Clip videos: put the files in web/brand/ (for example clip-1.mp4, and clip-1.jpg as its first frame), then set
+       data-video="/brand/clip-1.mp4" and data-poster="/brand/clip-1.jpg" on a slot below. Empty slots show a placeholder. -->
+  <div class="reel">
+    <figure class="reveal" style="--d:.05s"><div class="phone slot" data-video="" data-poster=""><span class="ph-play" aria-hidden="true"><svg viewBox="0 0 256 256"><path d="M232.4,114.49,88.32,26.35a16,16,0,0,0-16.2-.3A15.86,15.86,0,0,0,64,39.87V216.13A15.94,15.94,0,0,0,80,232a16.07,16.07,0,0,0,8.36-2.35L232.4,141.51a15.81,15.81,0,0,0,0-27ZM80,215.94V40l143.83,88Z"/></svg></span><span class="ph-lines" aria-hidden="true"><i></i><i></i></span><span class="ph-t">Clip coming soon</span></div></figure>
+    <figure class="mid reveal" style="--d:.12s"><div class="phone slot" data-video="" data-poster=""><span class="ph-play" aria-hidden="true"><svg viewBox="0 0 256 256"><path d="M232.4,114.49,88.32,26.35a16,16,0,0,0-16.2-.3A15.86,15.86,0,0,0,64,39.87V216.13A15.94,15.94,0,0,0,80,232a16.07,16.07,0,0,0,8.36-2.35L232.4,141.51a15.81,15.81,0,0,0,0-27ZM80,215.94V40l143.83,88Z"/></svg></span><span class="ph-lines" aria-hidden="true"><i></i><i></i></span><span class="ph-t">Clip coming soon</span></div></figure>
+    <figure class="reveal" style="--d:.19s"><div class="phone slot" data-video="" data-poster=""><span class="ph-play" aria-hidden="true"><svg viewBox="0 0 256 256"><path d="M232.4,114.49,88.32,26.35a16,16,0,0,0-16.2-.3A15.86,15.86,0,0,0,64,39.87V216.13A15.94,15.94,0,0,0,80,232a16.07,16.07,0,0,0,8.36-2.35L232.4,141.51a15.81,15.81,0,0,0,0-27ZM80,215.94V40l143.83,88Z"/></svg></span><span class="ph-lines" aria-hidden="true"><i></i><i></i></span><span class="ph-t">Clip coming soon</span></div></figure>
+  </div>
+</div></section>
+
 <div class="sized"><div class="plats">
     <div><p>Clips from</p><span>YouTube</span><span>Twitch</span><span>Kick</span><span>Any public video link</span></div>
     <div><p>Posts straight to</p><span>YouTube Shorts</span><span>Instagram Reels</span></div>
@@ -400,8 +464,17 @@ details p{color:var(--dim);margin-top:12px;font-size:16px}
 const _y = document.getElementById("year"); if (_y) _y.textContent = new Date().getFullYear();
 const navEl = document.getElementById("nav");
 addEventListener("scroll", () => navEl.classList.toggle("stuck", scrollY > 4), {passive:true});
-const startAscii = () => { try { GradientASCII(document.getElementById("heroAscii"), {colors: ["#8CBFFF", "#FFFFFF", "#B8D6FF", "#CFE3FF", "#EAF3FF"], shape: "horizon", lightMode: true, cellSize: 16, density: 0.8, glyphOpacity: 0.26, gradientOpacity: 0.32, glow: 0.06, grain: 0.06, mouseInteraction: false, clickEffect: "none"}); } catch {} };
-window.GradientASCII ? startAscii() : addEventListener("load", startAscii, {once:true});
+// clip slots: a slot with data-video set plays that clip; an empty one keeps its placeholder
+document.querySelectorAll(".phone.slot").forEach(slot => {
+  const src = slot.dataset.video; if (!src) return;
+  const v = document.createElement("video");
+  Object.assign(v, {muted: true, loop: true, autoplay: true, playsInline: true, preload: "metadata"});
+  v.setAttribute("muted", ""); v.setAttribute("playsinline", "");
+  if (slot.dataset.poster) v.poster = slot.dataset.poster;
+  v.addEventListener("loadeddata", () => slot.classList.add("has-video"), {once: true});
+  v.addEventListener("error", () => v.remove(), {once: true});
+  v.src = src; slot.append(v);
+});
 try {
   const lz = new IntersectionObserver(es => es.forEach(e => { const v = e.target; if (e.isIntersecting) { v.preload = "auto"; v.play().catch(() => {}); } else v.pause(); }), {threshold:.4});
   document.querySelectorAll("video.lazyplay").forEach(v => lz.observe(v));
