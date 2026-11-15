@@ -47,7 +47,7 @@ def youtube_paused() -> bool:
 
 def check_youtube(url: str):
     """Raise YouTubeBlocked straight away if YouTube is refusing this server right now."""
-    if is_youtube(url) and youtube_paused():
+    if is_youtube(url) and youtube_paused() and not apify.ready():       # links fetched through Apify never wait on the pause
         raise YouTubeBlocked(YT_BLOCKED)
 
 

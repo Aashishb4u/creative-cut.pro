@@ -6,7 +6,7 @@ from pathlib import Path
 tmp = Path(tempfile.mkdtemp(prefix="pc-apify-"))
 os.environ["CREATIVECUT_DATA"] = str(tmp / "data")
 os.environ.update(DATABASE_URL="", CREATIVECUT_ACCOUNTS="0", CREATIVECUT_AI_KEY="", CREATIVECUT_AI_MODELS="")
-os.environ.pop("CREATIVECUT_APIFY_TOKEN", None); os.environ.pop("CREATIVECUT_APIFY_TOKEN_FILE", None)
+os.environ["CREATIVECUT_APIFY_TOKEN"] = ""; os.environ["CREATIVECUT_APIFY_TOKEN_FILE"] = ""      # a real token in .env must not leak into this test
 sys.path.insert(0, ".")
 import httpx
 from studio import apify, config, media
@@ -88,6 +88,22 @@ piece = media.download_section(YT, clips, "c1.again", 1.0, 3.0, 720, exact=True)
 info = media.probe(piece)
 check("the stretch is cut exactly", abs(info["duration"] - 2.0) < 0.3, True)
 check("only the piece is left in the folder", sorted(p.name for p in clips.iterdir()), ["c1.again.mp4"])
+
+# ---- a refusal of the server's own look must not turn away links that go through Apify
+media._yt_refused_until = 10 ** 12
+try:
+    media.check_youtube(YT); ok = True
+except media.YouTubeBlocked:
+    ok = False
+check("YouTube refusing the server does not stop a link that goes through Apify", ok, True)
+os.environ["CREATIVECUT_APIFY_TOKEN_FILE"] = ""; config._kept.clear()
+try:
+    media.check_youtube(YT); ok = False
+except media.YouTubeBlocked:
+    ok = True
+check("without a token the pause still turns the link away", ok, True)
+media._yt_refused_until = 0.0
+os.environ["CREATIVECUT_APIFY_TOKEN_FILE"] = str(tmp / "tok.txt"); config._kept.clear()
 
 # ---- where YouTube refuses the look at the video, the public embed information still gives the title
 media._oembed = lambda u: {"title": "From embed", "uploader": "Chan", "duration": 0.0, "is_live": False, "thumbnail": "", "kind": "video"}
