@@ -22,9 +22,9 @@ function start() {
 
   // ---- the clips: each is a finished vertical clip drawn on a canvas, with a hook, a score and captions
   const CLIPS = [
-    {src: "/video_clips/hero_clips_1.mp4", bg: ["#FFD23F", "#FF7A1F", "#E8175D"], hook: "WAIT FOR IT", score: 94, words: ["THIS", "CHANGES"]},
-    {src: "/video_clips/hero_clips_2.mp4", bg: ["#FF5A7A", "#E8175D", "#3D1466"], hook: "HE SAID WHAT", score: 91, words: ["NOBODY", "EXPECTED"]},
-    {src: "/video_clips/hero_clips_3.mp4", bg: ["#7A2BD0", "#E8175D", "#15110F"], hook: "NOBODY SAW THIS", score: 88, words: ["THE", "FINISH"]}
+    {src: "/clips/hero_clips_1.mp4", bg: ["#FFD23F", "#FF7A1F", "#E8175D"], hook: "WAIT FOR IT", score: 94, words: ["THIS", "CHANGES"]},
+    {src: "/clips/hero_clips_2.mp4", bg: ["#FF5A7A", "#E8175D", "#3D1466"], hook: "HE SAID WHAT", score: 91, words: ["NOBODY", "EXPECTED"]},
+    {src: "/clips/hero_clips_3.mp4", bg: ["#7A2BD0", "#E8175D", "#15110F"], hook: "NOBODY SAW THIS", score: 88, words: ["THE", "FINISH"]}
   ];
   const W = 540, H = 960, R = 56;
 
