@@ -302,9 +302,39 @@ footer.site{border-top:1px solid var(--line2);padding:56px 0 30px;background:rgb
 .m-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--red),var(--red-hi));transition:width 1.8s var(--ease)}
 .tl .step.on .m-bar i{width:100%}
 .m-result{grid-template-columns:110px 1fr;align-items:center}
-.m-clip{aspect-ratio:9/16;border-radius:12px;background:linear-gradient(170deg,#FFD23F,#FF7A1F 50%,#E8175D);display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:12px 6px}
+
+.m-clip {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.m-clip video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 9 / 16;
+  object-fit: cover;
+  background: #000;
+}
+
+.m-clip b {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+}
+
+.m-clip span {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  z-index: 2;
+}
+
+/* .m-clip{aspect-ratio:9/16;border-radius:12px;background:linear-gradient(170deg,#FFD23F,#FF7A1F 50%,#E8175D);display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:12px 6px}
 .m-clip b{background:#fff;color:#15110F;font:400 10px "Archivo Black",sans-serif;padding:4px 7px;border-radius:5px}
-.m-clip span{font-size:10px;font-weight:800;background:rgba(20,10,20,.7);padding:3px 7px;border-radius:999px}
+.m-clip span{font-size:10px;font-weight:800;background:rgba(20,10,20,.7);padding:3px 7px;border-radius:999px} */
 .m-acts{display:grid;gap:8px}.m-acts span{padding:10px 14px;border-radius:10px;border:1px solid var(--line2);font-size:13px;font-weight:700;color:var(--mute)}
 .m-acts .hot{background:var(--red);border-color:var(--red);color:#fff}
 @media (max-width:900px){
@@ -387,9 +417,42 @@ footer.site{border-top:1px solid var(--line2);padding:56px 0 30px;background:rgb
     <article class="step flip reveal"><div class="num">02</div>
       <div class="tl-txt"><h3>The AI finds the moments</h3><p>The whole recording is transcribed, the strongest moments are picked and scored, and each one is cut into a vertical clip with captions timed to the voice. A 15-minute video takes about two minutes.</p></div>
       <div class="tl-mock" aria-hidden="true"><small>Making your clips</small><div class="m-prog"><div style="--i:0"><i></i>Getting the audio</div><div style="--i:1"><i></i>Writing the transcript</div><div style="--i:2"><i></i>Finding the best moments</div><div style="--i:3"><i></i>Making the clips</div></div><div class="m-bar"><i></i></div></div></article>
-    <article class="step reveal"><div class="num">03</div>
-      <div class="tl-txt"><h3>Download, post, or keep editing</h3><p>Every clip arrives captioned, scored, and with a hook, title, description and hashtags written for it. Trim it, change the style, download it, or queue it to post.</p></div>
-      <div class="tl-mock m-result" aria-hidden="true"><div class="m-clip"><b>WAIT FOR IT</b><span>Score 94</span></div><div class="m-acts"><span>Download</span><span>Copy post text</span><span class="hot">Post</span></div></div></article>
+   
+<article class="step reveal">
+  <div class="num">03</div>
+
+  <div class="tl-txt">
+    <h3>Download, post, or keep editing</h3>
+    <p>
+      Every clip arrives captioned, scored, and with a hook,
+      title, description and hashtags written for it.
+      Trim it, change the style, download it, or queue it to post.
+    </p>
+  </div>
+
+  <div class="tl-mock m-result" aria-hidden="true">
+    <div class="m-clip">
+      <b>WAIT FOR IT</b>
+
+      <video
+        src="/clips/hero_clips_1.mp4"
+        controls
+        muted
+        playsinline
+        preload="metadata"
+      ></video>
+
+      <span>Score 94</span>
+    </div>
+
+    <div class="m-acts">
+      <span>Download</span>
+      <span>Copy post text</span>
+      <span class="hot">Post</span>
+    </div>
+  </div>
+</article>
+
   </div>
 </div></section>
 
