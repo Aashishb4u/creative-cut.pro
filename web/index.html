@@ -1660,7 +1660,8 @@ function uploadHelp(j) {
   // a link that would not download: the person can get the video themselves and upload it
   if (j.status !== "error" || j.source?.type !== "url" || !/video service|YouTube|download|refus/i.test(j.error || "")) return "";
   return `<div class="uphelp"><b>Download the video yourself instead</b>
-    <ol><li>Open <a href="https://vidssave.com/" target="_blank" rel="noopener noreferrer">vidssave.com</a>, paste the video link and download it as MP4.</li>
+    <ol><li>Copy your video link: <button class="btn sm" data-act="copylink" data-url="${esc(j.source.url || "")}">${ic("copy")}Copy link</button></li>
+    <li>Open <a href="https://vidssave.com/" target="_blank" rel="noopener noreferrer">vidssave.com</a>, paste the link there and download the video as MP4.</li>
     <li>Come back here and upload the file. We make your clips from it, then delete it.</li></ol>
     <label class="btn sm" id="up-${esc(j.id)}">${ic("up")}<span class="uptxt">Upload the video</span><input type="file" accept="video/mp4,video/quicktime,video/x-matroska,video/webm,.mp4,.mov,.mkv,.webm,.m4v" data-upfor="${esc(j.id)}" hidden></label>
     <span class="sub"> Up to ${S.status.max_upload_mb || 500} MB.</span></div>`;
@@ -2408,6 +2409,11 @@ document.addEventListener("click", async e => {
     if (a === "updhow") return updateHow();
     if (a === "updlater") { try { localStorage.setItem("creativecut_update_seen", S.status.update?.latest || ""); } catch {} return drawShell(); }
     if (a === "appsetup") { S.setupOpen = d.p && S.setupOpen !== d.p ? d.p : ""; return drawSettings(); }
+    if (a === "copylink") {
+      try { await navigator.clipboard.writeText(d.url); toast("Link copied. Paste it on vidssave.com.", "ok"); }
+      catch { toast("Could not copy. Select the link from the video's page instead.", "bad"); }
+      return;
+    }
     if (a === "copytext") { await navigator.clipboard.writeText(d.t); return toast("Copied", "ok"); }
     if (a === "appsave") {
       await send("/api/apps", {platform: d.p, client_id: $("#app_id").value, client_secret: $("#app_secret").value}, "PUT");
