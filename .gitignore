@@ -8,6 +8,8 @@ secrets/
 *service-account*.json
 *client_secret*.json
 data/
+# sample clips for the landing page: large, copied to the server by hand
+web/video_clips/
 *.db
 *.db-wal
 *.db-shm

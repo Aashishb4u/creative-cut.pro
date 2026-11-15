@@ -25,7 +25,7 @@ from . import (accounts, ai, alerts, auth, config, creators, ctx, db, jobs, live
 
 app = FastAPI(title="Creative Cut", docs_url=None, redoc_url=None, openapi_url=None)
 WEB = config.ROOT / "web"
-OPEN = ("/api/auth/", "/pub/", "/api/public", "/auth/google/", "/auth/verify", "/brand/", "/assets/", "/healthz", "/favicon.ico", "/robots.txt", "/sitemap.xml")
+OPEN = ("/api/auth/", "/pub/", "/api/public", "/auth/google/", "/auth/verify", "/brand/", "/assets/", "/clips/", "/healthz", "/favicon.ico", "/robots.txt", "/sitemap.xml")
 PAGES = {"/": "landing.html", "/login": "auth.html", "/signup": "auth.html", "/reset": "reset.html",
          "/privacy": "legal.html", "/terms": "legal.html", "/acceptable-use": "legal.html"}
 CSP = ("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
@@ -370,6 +370,14 @@ def brand(name: str):
     if not re.fullmatch(r"[\w\-]+\.(svg|png|ico|webp|jpg|mp4)", name) or not (WEB / "brand" / name).is_file():
         raise HTTPException(404)
     return FileResponse(WEB / "brand" / name, headers={"Cache-Control": "public, max-age=604800, stale-while-revalidate=86400"})
+
+
+@app.get("/clips/{name}")
+def clip_video(name: str):
+    """Sample clips for the landing page, kept in web/video_clips (not in git: they are large)."""
+    if not re.fullmatch(r"[\w\-]+\.mp4", name) or not (WEB / "video_clips" / name).is_file():
+        raise HTTPException(404)
+    return FileResponse(WEB / "video_clips" / name, media_type="video/mp4", headers={"Cache-Control": "public, max-age=604800"})
 
 
 @app.get("/assets/{name}")

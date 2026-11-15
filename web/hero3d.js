@@ -22,9 +22,9 @@ function start() {
 
   // ---- the clips: each is a finished vertical clip drawn on a canvas, with a hook, a score and captions
   const CLIPS = [
-    {bg: ["#FFD23F", "#FF7A1F", "#E8175D"], hook: "WAIT FOR IT", score: 94, words: ["THIS", "CHANGES"]},
-    {bg: ["#FF5A7A", "#E8175D", "#3D1466"], hook: "HE SAID WHAT", score: 91, words: ["NOBODY", "EXPECTED"]},
-    {bg: ["#7A2BD0", "#E8175D", "#15110F"], hook: "NOBODY SAW THIS", score: 88, words: ["THE", "FINISH"]}
+    {src: "/clips/gta_clip_1.mp4", bg: ["#FFD23F", "#FF7A1F", "#E8175D"], hook: "WAIT FOR IT", score: 94, words: ["THIS", "CHANGES"]},
+    {src: "/clips/gta_clip_2.mp4", bg: ["#FF5A7A", "#E8175D", "#3D1466"], hook: "HE SAID WHAT", score: 91, words: ["NOBODY", "EXPECTED"]},
+    {src: "/clips/gta_clip_3.mp4", bg: ["#7A2BD0", "#E8175D", "#15110F"], hook: "NOBODY SAW THIS", score: 88, words: ["THE", "FINISH"]}
   ];
   const W = 540, H = 960, R = 56;
 
@@ -85,6 +85,9 @@ function start() {
   halo.position.set(0, 0, -4.5);
   scene.add(halo);
 
+  // a card keeps the shape of its video (portrait, square or landscape), fitted inside the card box
+  function fit(a) { let w = CW, h = CW / a; if (h > CH) { h = CH; w = CH * a; } return [w, h]; }
+  const videos = [];
   function build() {
     CLIPS.forEach((c, i) => {
       const group = new THREE.Group();
@@ -92,12 +95,34 @@ function start() {
       const back = new THREE.Mesh(backGeo, backMat);
       back.position.z = -0.02;
       group.add(back, face);
-      group.userData = {i, face, glow: 0};
+      group.userData = {i, face, back, glow: 0};
       carousel.add(group);
       cards.push(group);
+      if (c.src) loadVideo(c, group);
     });
     renderOnce();
   }
+  function loadVideo(c, group) {
+    const v = document.createElement("video");
+    Object.assign(v, {muted: true, loop: true, playsInline: true, preload: "auto", src: c.src});
+    v.setAttribute("muted", ""); v.setAttribute("playsinline", "");
+    v.addEventListener("loadedmetadata", () => {
+      const [w, h] = fit(v.videoWidth / v.videoHeight);
+      group.userData.face.geometry = new THREE.PlaneGeometry(w, h);
+      group.userData.back.geometry = new THREE.PlaneGeometry(w + 0.1, h + 0.1);
+      if (reduce) v.currentTime = 0.6;                              // reduced motion: one still frame, no playing
+    });
+    v.addEventListener("loadeddata", () => {
+      const tex = new THREE.VideoTexture(v);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      group.userData.face.material.map = tex; group.userData.face.material.needsUpdate = true;
+      renderOnce();
+    }, {once: true});
+    v.addEventListener("error", () => v.remove(), {once: true});       // no clip: the drawn card stays
+    videos.push(v);
+    if (!reduce) v.play().catch(() => {});
+  }
+  function playing(on) { videos.forEach(v => { if (on && !reduce) v.play().catch(() => {}); else v.pause(); }); }
 
   // ---- sparks: small bright points drifting behind the clips
   const N = 140, pos = new Float32Array(N * 3), seed = new Float32Array(N);
@@ -167,8 +192,8 @@ function start() {
     renderOnce();
   }
   new ResizeObserver(resize).observe(canvas);
-  new IntersectionObserver(es => { visible = es[0].isIntersecting; if (visible) kick(); }, {threshold: 0}).observe(canvas);
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) kick(); });
+  new IntersectionObserver(es => { visible = es[0].isIntersecting; playing(visible); if (visible) kick(); }, {threshold: 0}).observe(canvas);
+  document.addEventListener("visibilitychange", () => { playing(!document.hidden && visible); if (!document.hidden) kick(); });
 
   // ---- interaction: hover, drag, click
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
