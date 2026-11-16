@@ -60,6 +60,7 @@ def main() -> int:
                 ("YouTube cookies and yt-dlp updates", ["tests/test_youtube.py"]),
                 ("uploading a video when a link fails", ["tests/test_upload.py"]),
                 ("morning tidy-up of unfinished uploads", ["tests/test_cleanup.py"]),
+                ("a download can never fill the disk", ["tests/test_guard.py"]),
                 ("line for videos, wait estimate, busiest parts of long videos", ["tests/test_queue.py"]),
                 ("space per person", ["tests/test_storage.py"]),
                 ("bring your own AI key", ["tests/test_ai_users.py"]),

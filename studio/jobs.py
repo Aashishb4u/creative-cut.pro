@@ -868,8 +868,12 @@ def _worker(quick_only=False):
                     _drop_source(job)       # a video that failed is not kept either
                 except Exception:  # noqa: BLE001
                     pass
-                _set(job, status="error", error=safe.friendly(e), stage="Stopped")
-                creators.log(job["creator"], f"Video failed: {safe.friendly(e)[:200]}")
+                why = safe.friendly(e)
+                src = job.get("source") or {}
+                if src.get("type") == "url" and media.is_youtube(src.get("url", "")) and type(e).__name__ in ("DownloadError", "ExtractorError", "YouTubeBlocked"):
+                    why = media.YT_BLOCKED_VIDEO      # whatever YouTube said, the person can still upload the video (the card shows how)
+                _set(job, status="error", error=why, stage="Stopped")
+                creators.log(job["creator"], f"Video failed: {why[:200]}")
         finally:
             ctx._uid.reset(token)
             if kind == "job":

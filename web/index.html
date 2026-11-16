@@ -1658,7 +1658,7 @@ function liveHtml(j) {
 }
 function uploadHelp(j) {
   // a link that would not download: the person can get the video themselves and upload it
-  if (j.status !== "error" || j.source?.type !== "url" || !/video service|YouTube|download|refus/i.test(j.error || "")) return "";
+  if (j.status !== "error" || j.source?.type !== "url" || j.clips?.length || /too long|no clips|AI key|limit|quota/i.test(j.error || "")) return "";
   return `<div class="uphelp"><b>Download the video yourself instead</b>
     <ol><li>Copy your video link: <button class="btn sm" data-act="copylink" data-url="${esc(j.source.url || "")}">${ic("copy")}Copy link</button></li>
     <li>Open <a href="https://vidssave.com/" target="_blank" rel="noopener noreferrer">vidssave.com</a>, paste the link there and download the video as MP4.</li>

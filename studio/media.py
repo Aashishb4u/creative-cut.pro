@@ -34,6 +34,35 @@ YT_BLOCKED_VIDEO = ("YouTube isn't letting Creative Cut download this video righ
                     "and upload it here instead.")
 
 
+class TooBig(RuntimeError):
+    """A download that has grown past what one video may take, or that would fill the disk. It is stopped and deleted."""
+
+
+def _size_guard(folder, on_progress=None):
+    """A progress hook for every download: stops it when it is bigger than CREATIVECUT_MAX_DOWNLOAD_GB, or when the disk is
+    nearly full. A site that does not say how long a video is (or a stream that never ends) could otherwise write for hours
+    until the whole server has no space left. on_progress, if given, is called as well (that is how Cancel stops a download)."""
+    last = [0.0]
+
+    def hook(d):
+        if on_progress:
+            on_progress(d)
+        n = d.get("downloaded_bytes") or 0
+        if config.MAX_DOWNLOAD_GB and n > config.MAX_DOWNLOAD_GB * 1e9:
+            raise TooBig(f"That video is too big to download here (over {config.MAX_DOWNLOAD_GB:g} GB). "
+                         "Choose a shorter part of it under Options, or use a shorter video.")
+        now = time.time()
+        if now - last[0] >= 3:
+            last[0] = now
+            try:
+                free = shutil.disk_usage(str(folder)).free / 1e9
+            except OSError:
+                return
+            if free < config.MIN_FREE_DISK_GB:
+                raise TooBig("Creative Cut is out of space for the moment, so this download was stopped. Please try again shortly.")
+    return hook
+
+
 class YouTubeBlocked(RuntimeError):
     pass
 
@@ -331,7 +360,7 @@ def download_audio(url: str, job_dir: Path, on_progress=None) -> Path:
             on_progress(d.get("downloaded_bytes", 0) / total)
 
     with _youtube_guard(url), _ydl({"format": "ba[ext=m4a]/ba/worst", "outtmpl": str(job_dir / "audio_src.%(ext)s"),
-               "progress_hooks": [hook]}) as ydl:
+               "progress_hooks": [_size_guard(job_dir, hook)]}) as ydl:
         ydl.download([url])
     return _biggest(job_dir, "audio_src")
 
@@ -339,7 +368,7 @@ def download_audio(url: str, job_dir: Path, on_progress=None) -> Path:
 def download(url: str, job_dir: Path, height=720, on_progress=None) -> Path:
     """The whole video. Used for shorter videos, where this is quicker than fetching pieces. on_progress is called as
     it goes; raising from it stops the download (that is how a cancelled video stops)."""
-    hooks = [lambda d: on_progress(d)] if on_progress else []
+    hooks = [_size_guard(job_dir, on_progress)]
     with _youtube_guard(url), _ydl({"format": _video_format(height), "merge_output_format": "mp4",
                                     "outtmpl": str(job_dir / "source.%(ext)s"), "progress_hooks": hooks}) as ydl:
         ydl.download([url])
@@ -355,7 +384,7 @@ def download_section(url: str, out_dir: Path, stem: str, start: float, end: floa
     with _youtube_guard(url), _ydl({"format": _video_format(height), "merge_output_format": "mp4",
                "outtmpl": str(out_dir / (stem + ".%(ext)s")),
                "force_keyframes_at_cuts": bool(exact),
-               "progress_hooks": [lambda d: on_progress(d)] if on_progress else [],
+               "progress_hooks": [_size_guard(out_dir, on_progress)],
                "download_ranges": download_range_func(None, [(max(0.0, start), end)])}) as ydl:
         ydl.download([url])
     return _biggest(out_dir, stem)

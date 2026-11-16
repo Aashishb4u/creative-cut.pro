@@ -64,6 +64,8 @@ A short map for contributors and AI coding assistants.
   (`jobs.wait_text`, from how long recent videos took). Over `CREATIVECUT_PICKY_ASR_MIN` minutes a video is not transcribed
   whole: `brain.busy_windows` picks the loudest stretches and only those are transcribed, best first, until there are enough
   clips. In every video, parts after the clips are found are not transcribed.
+- **Downloads cannot fill the disk**: every yt-dlp download runs through `media._size_guard` (`CREATIVECUT_MAX_DOWNLOAD_GB`, 8, and
+  `CREATIVECUT_MIN_FREE_DISK_GB`, 3). One account once wrote a 116 GB file from a single link and filled the server.
 - **Viral score**: the AI's score (`ai_score`) is blended once with the picture's score (`brain.blend`, `jobs._look`).
   `brain.NICHES` holds what to look for in each kind of video; `brain.tighten` cuts dead air off a clip's ends.
 - Comments and messages are written in plain language for people who do not program. Keep that tone.

@@ -651,13 +651,15 @@ def link_preview(request: Request, url: str = ""):
         raise HTTPException(429, "Too many links at once. Wait a moment.")
     try:
         return _lookup(media.preview, url)
-    except media.YouTubeBlocked as e:
-        raise HTTPException(503, str(e))
     except ValueError as e:
         raise HTTPException(422, str(e))
     except HTTPException:
         raise
-    except Exception:
+    except Exception:  # noqa: BLE001
+        if media.is_youtube(url):
+            # YouTube refused the look (this server is often refused). The link is still accepted: if the download then
+            # fails too, the video's card asks the person to upload the file themselves.
+            return {"title": "YouTube video", "uploader": "", "duration": 0, "is_live": False, "thumb": ""}
         raise HTTPException(422, "Couldn't open that video. Check the link is public and complete.")
 
 

@@ -114,6 +114,8 @@ FREE_VIDEOS = _limit("CREATIVECUT_FREE_VIDEOS", "5")                            
 FREE_REMAKES = _limit("CREATIVECUT_FREE_REMAKES", "1")                          # times a free account may re-make one clip after changing it; 0 = no limit
 MAX_LIVE_TOTAL = int(env("CREATIVECUT_MAX_LIVE") or max(4, 2 * (os.cpu_count() or 4)))   # ceiling; real load decides below it
 MAX_LIVE_PER_USER = int(_limit("CREATIVECUT_MAX_LIVE_PER_USER"))     # streams one person records at once
+MAX_DOWNLOAD_GB = float(env("CREATIVECUT_MAX_DOWNLOAD_GB", "8") or 0)        # most one video may take to download, in GB; the download stops past it. 0 = no limit
+MIN_FREE_DISK_GB = float(env("CREATIVECUT_MIN_FREE_DISK_GB", "3") or 0)      # a download stops when the disk has less than this left
 MAX_VIDEO_HOURS = _limit("CREATIVECUT_MAX_VIDEO_HOURS")              # longest video (or chosen part of one) that is processed
 MAX_LIVE_HOURS = _limit("CREATIVECUT_MAX_LIVE_HOURS")                # a recording stops by itself after this long
 MAX_USER_MB = _limit("CREATIVECUT_MAX_USER_MB", "100")               # space for one account's clips; over it, the oldest videos are deleted (storage.py)
