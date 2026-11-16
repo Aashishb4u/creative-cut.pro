@@ -84,6 +84,24 @@ check("the file is whole and no piece file is left", (Path(j["source"]["path"]).
 check("the link is remembered", j["source"]["from_url"].startswith("https://www.youtube.com/"), True)
 check("a second upload on a video that is no longer failed is refused", piece(a, j["id"], data[:100], 0).status_code, 400)
 
+# ---- YouTube refusing the server: the link is still accepted, already failed, so its card offers the upload
+from studio import media
+j["status"] = "done"                        # the earlier video is finished, so the one-at-a-time limit is free
+media._yt_refused_until = 10 ** 12
+media._PREVIEWS.clear()
+real_info, real_oembed = media.info, media._oembed
+media.info = lambda url: (_ for _ in ()).throw(media.YouTubeBlocked(media.YT_BLOCKED_VIDEO))
+media._oembed = lambda url: {"title": "From embed", "uploader": "Chan", "duration": 0.0, "is_live": False, "thumbnail": "", "kind": "video"}
+pv = a_prev = media.preview("https://www.youtube.com/watch?v=aaaaaaaaaaa")
+check("while YouTube refuses the server, a link still gets its title for the page", pv["title"], "From embed")
+r = a.post("/api/jobs", json={"url": "https://www.youtube.com/watch?v=aaaaaaaaaaa"}, headers=ORIGIN)
+check("the link is accepted, as an already-failed video (not turned away)", (r.status_code, r.json().get("status")), (200, "error"))
+check("...with the message that points to uploading", "upload it here" in (r.json().get("error") or ""), True)
+nid = r.json()["id"]
+check("...and that video can take the upload", whole(a, nid).status_code, 200)
+media._yt_refused_until = 0.0
+media.info, media._oembed = real_info, real_oembed
+
 # ---- other requests are still cut off at the small size
 big = a.post("/api/jobs", content=b"x" * (300 * 1024), headers={**ORIGIN, "Content-Type": "application/json"})
 check("every other request is still capped at 256 KB", big.status_code, 413)

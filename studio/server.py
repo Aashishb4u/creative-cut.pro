@@ -769,17 +769,21 @@ def create_from_link(body: dict = Body(...)):
     url = str(body.get("url", "")).strip()[:500]
     if not media.site_allowed(url):
         raise HTTPException(400, "Paste a full link to a YouTube, Twitch or Kick video.")
+    refused = None
     try:
-        media.check_youtube(url)          # YouTube is refusing us right now: say so, rather than queue a job that fails
+        media.check_youtube(url)
     except media.YouTubeBlocked as e:
-        raise HTTPException(503, str(e))
+        refused = str(e)                  # YouTube is refusing us right now: the video is added already failed, so its card shows how to upload it
     creator = str(body.get("creator") or "") or None
     if creator and not creators.get(creator):
         raise HTTPException(404, "No such creator")
     try:
         with _create_lock:
             _job_slots()
-            job = jobs.create({"type": "url", "url": url, "name": url}, body.get("options") or {}, creator=creator)
+            job = jobs.create({"type": "url", "url": url, "name": url}, body.get("options") or {}, creator=creator, enqueue=not refused)
+            if refused:
+                job.update(status="error", stage="Stopped", error=refused)
+                jobs.save(job)
     except (ValueError, TypeError) as e:
         raise HTTPException(400, str(e) if isinstance(e, ValueError) else "Those options aren't valid.")
     seen = media._PREVIEWS.get(url)  # already looked up while the user was typing: show it straight away

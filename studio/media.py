@@ -29,6 +29,11 @@ YT_BLOCKED = ("YouTube isn't letting Creative Cut download videos right now. Try
 _BOT_CHECK = re.compile(r"not a bot|confirm you.?re not|sign in to confirm(?! your age)", re.I)
 
 
+# For a video that was asked for: it can still be given to us by the person (the page shows how, on the video's card).
+YT_BLOCKED_VIDEO = ("YouTube isn't letting Creative Cut download this video right now. You can download it yourself "
+                    "and upload it here instead.")
+
+
 class YouTubeBlocked(RuntimeError):
     pass
 
@@ -46,7 +51,7 @@ def youtube_paused() -> bool:
 def check_youtube(url: str):
     """Raise YouTubeBlocked straight away if YouTube is refusing this server right now."""
     if is_youtube(url) and youtube_paused():
-        raise YouTubeBlocked(YT_BLOCKED)
+        raise YouTubeBlocked(YT_BLOCKED_VIDEO)
 
 
 def note_refusal(url: str, err) -> bool:
@@ -96,7 +101,7 @@ def _youtube_guard(url):
     except Exception as e:  # noqa: BLE001
         if note_refusal(url, e):
             ytupdate.soon()                      # an out-of-date yt-dlp is a common reason: look for a newer one
-            raise YouTubeBlocked(YT_BLOCKED) from None
+            raise YouTubeBlocked(YT_BLOCKED_VIDEO) from None
         raise
 
 
@@ -245,13 +250,33 @@ def _caption_words(data: dict) -> list:
 _PREVIEWS: dict = {}
 
 
+def _oembed(url: str) -> dict:
+    """Title, channel and picture of a YouTube video from YouTube's public embed information, which is not refused the way
+    downloads are. The length is not in it (0 here). Raises ValueError when there is nothing: private, removed, not a video."""
+    import httpx
+    try:
+        r = httpx.get("https://www.youtube.com/oembed", params={"url": url, "format": "json"}, timeout=10)
+        d = r.json() if r.status_code == 200 else {}
+    except (httpx.HTTPError, ValueError):
+        d = {}
+    if not d.get("title"):
+        raise ValueError("That video could not be found. Check the link, and that the video is public.")
+    return {"title": d.get("title") or "", "uploader": d.get("author_name") or "", "duration": 0.0, "is_live": False,
+            "thumbnail": d.get("thumbnail_url") or "", "kind": "video"}
+
+
 def preview(url: str) -> dict:
     """What the user will get from a link, checked before any work starts. The thumbnail comes back inline
     (the page may only load images from this site). Cached, so retyping a link costs nothing."""
     url = url.strip()
     if url in _PREVIEWS:
         return _PREVIEWS[url]
-    i = info(url)
+    try:
+        i = info(url)
+    except Exception:  # noqa: BLE001
+        if not is_youtube(url):
+            raise
+        i = _oembed(url)           # YouTube refuses the server's own look: its public embed information still gives a title and picture
     if i["kind"] != "video" or not i["title"]:
         raise ValueError("That link is a channel or playlist, not a single video.")
     thumb = ""
