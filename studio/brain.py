@@ -250,6 +250,30 @@ def loud_zscore(db):
     return (db - np.median(db)) / (db.std() + 1e-6)
 
 
+def busy_windows(db, count, win=240):
+    """The stretches of a very long video most worth listening to: the loudest, most animated parts, found from the loudness
+    of each second alone (no transcript needed). Returns up to `count` (start, end) pairs in seconds, best first, none
+    overlapping, each at most `win` long. Used so the speech of a 3-hour stream is not transcribed from end to end."""
+    n = len(db)
+    if n <= win or count <= 0:
+        return [(0.0, float(n))] if n else []
+    k = 15                                                                  # smooth over 15 seconds: a moment, not a single shout
+    padded = np.pad(db.astype(np.float64), (k // 2, k // 2), mode="edge")        # no false jump at either end of the recording
+    sm = np.convolve(padded, np.ones(k) / k, mode="valid")[:n]
+    z = (sm - np.median(sm)) / (sm.std() + 1e-6)
+    z = z + 0.5 * np.abs(np.gradient(sm)) / (np.abs(np.gradient(sm)).std() + 1e-6)     # a change in level is as lively as a high one
+    out, half = [], win // 2
+    score = z.copy()
+    for _ in range(count):
+        t = int(np.argmax(score))
+        if score[t] == -np.inf:
+            break
+        a = max(0, min(t - half, n - win))
+        out.append((float(a), float(a + win)))
+        score[max(0, a - half): min(n, a + win + half)] = -np.inf       # the next one starts well clear of this one
+    return out
+
+
 def ask_ai(prompt, schema=None, purpose="AI call"):
     """Try each model in order, with a couple of retries for rate limits and overloads.
     Returns (the answer, the model that gave it, tokens used) and notes the tokens in the usage record."""

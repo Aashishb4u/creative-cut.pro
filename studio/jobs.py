@@ -27,6 +27,8 @@ class _FairQueue:
         self.running = 0                      # videos being worked on right now
         self.last_start = 0.0
         self.held = False                     # videos are waiting only because the machine is near full
+        self.long_running = set()             # job ids of the long videos being worked on (short ones may use the reserved worker)
+        self.is_short = lambda item: False    # set below: is this waiting video a short one?
 
     def _room(self) -> bool:
         """May one more video start? One always may. More only while the machine has room, and a few seconds
@@ -35,9 +37,26 @@ class _FairQueue:
             return True
         return self.running < config.JOB_WORKERS and time.time() - self.last_start > 6 and not load.busy()
 
-    def done(self):
+    def _long_slots(self) -> int:
+        """How many workers long videos may fill. The rest are kept for short ones, so a few long videos cannot make
+        everyone with a short video wait behind them. With one worker there is nothing to keep back."""
+        if config.JOB_WORKERS < 2:
+            return config.JOB_WORKERS
+        return max(1, config.JOB_WORKERS - config.JOB_SHORT_RESERVED)
+
+    def _pick(self):
+        """The first person in turn whose next video may start now: a short one whenever there is room, a long one only
+        while the long videos are not already using all the workers they may have."""
+        for u in self.turn:
+            item = self.lines[u][0]
+            if self.is_short(item) or len(self.long_running) < self._long_slots():
+                return u
+        return None
+
+    def done(self, jid=None):
         with self.cv:
             self.running = max(0, self.running - 1)
+            self.long_running.discard(jid)
             self.cv.notify_all()
 
     def put(self, item, user=None):
@@ -59,7 +78,8 @@ class _FairQueue:
                     self.epoch += 1
                     return self.quick.popleft()
                 if not quick_only and self.turn:
-                    if self._room():
+                    pick = self._pick() if self._room() else None
+                    if pick is not None:
                         break
                     if not self.held:
                         self.held = True
@@ -72,8 +92,11 @@ class _FairQueue:
             self.held = False
             self.running += 1
             self.last_start = time.time()
-            user = self.turn.popleft()
+            user = pick
+            self.turn.remove(user)
             item = self.lines[user].popleft()
+            if not self.is_short(item):
+                self.long_running.add(item[1])
             if self.lines[user]:
                 self.turn.append(user)
             else:
@@ -101,6 +124,24 @@ class _FairQueue:
 
 
 _q = _FairQueue()
+_took: "collections.deque" = collections.deque(maxlen=30)    # how long the last videos took, in seconds: the base of the wait estimate
+
+
+def video_minutes(job) -> float:
+    """How long the part of the video that will be worked on is, in minutes. 0 when not known yet."""
+    o = job.get("options") or {}
+    dur = float(job.get("duration") or 0)
+    span = (float(o.get("range_end") or dur) - float(o.get("range_start") or 0)) if dur else 0.0
+    return max(0.0, span) / 60
+
+
+def _is_short_item(item) -> bool:
+    job = _jobs.get(item[1]) if item and item[0] == "job" else None
+    m = video_minutes(job) if job else 0.0
+    return 0 < m <= config.SHORT_VIDEO_MIN       # a length that is not known yet is treated as long: it could be anything
+
+
+_q.is_short = _is_short_item
 _live_q: "queue.Queue" = queue.Queue()   # live clips never wait behind a long video
 _jobs: dict = {}
 _by_user: dict = {}                       # user -> {job id: job}: listing one person's videos never scans everyone's
@@ -155,12 +196,24 @@ def public(job) -> dict:
     out["ai"] = {"tokens": ai.get("tokens", 0), "note": ai.get("note", ""), "used": bool(ai.get("model"))}   # never the model, never raw errors
     if job.get("status") == "queued":
         n = _q.ahead().get(job["id"])
+        eta = wait_text(n or 0) if n is not None else ""
         if n:
             out["stage"] = (f"High demand right now: {n} video{'s' if n != 1 else ''} ahead of yours" if _q.held else
-                            f"Waiting in line: {n} video{'s' if n != 1 else ''} ahead of yours")
+                            f"Waiting in line: {n} video{'s' if n != 1 else ''} ahead of yours") + eta
         elif n == 0 and _q.held:
-            out["stage"] = "High demand right now: yours is next"
+            out["stage"] = "High demand right now: yours is next" + eta
     return out
+
+
+def wait_text(ahead: int) -> str:
+    """" · about 10 minutes" before a waiting video starts: the videos ahead, shared among the workers, each taking about
+    as long as the last few did. A guess, so it is given in rounded steps and never as an exact time."""
+    typical = sorted(_took)[len(_took) // 2] if _took else 240.0          # seconds; a few minutes until there is something to go on
+    secs = (ahead + 1) / max(1, config.JOB_WORKERS) * typical
+    mins = max(1, math.ceil(secs / 60))
+    if mins > 10:
+        mins = math.ceil(mins / 5) * 5
+    return f" · about {mins} minute{'s' if mins != 1 else ''}"
 
 
 def save(job):
@@ -646,6 +699,22 @@ def _run_job(job):
             yt = None
         job["transcript_from"] = "youtube" if yt else "own"
         job["lang"] = yt[1] if yt else ""          # the language spoken, when YouTube says (decides the captions)
+    # A very long video is not listened to from end to end: only its busiest stretches (found from the loudness alone, which
+    # is already measured) are transcribed, best first, and only until there are enough clips. Not needed when YouTube's
+    # own transcript is borrowed, because that costs nothing.
+    picky = False
+    kept_plain = resuming and not job.get("picky")       # a video started before this existed (or whole) carries on the way it began
+    if not yt and not kept_plain and config.PICKY_ASR_MIN and span > config.PICKY_ASR_MIN * 60:
+        wins = brain.busy_windows(db, min(24, max(6, int(o["max_clips"]) * 4)), config.PICKY_WINDOW_S)
+        if wins:
+            blocks = [(lo + int(a_ * 16000), min(hi, lo + int(b_ * 16000))) for a_, b_ in wins]
+            picky = True
+    job["picky"] = picky
+
+    def frac(i, a_, b_, p):
+        """How far through the speech to be written we are, from 0 to 1."""
+        return (i + p) / len(blocks) if picky else ((a_ - lo) + p * (b_ - a_)) / max(1, hi - lo)
+
     if resuming:
         try:
             words = json.loads((d / "words.json").read_text(encoding="utf-8"))
@@ -653,7 +722,7 @@ def _run_job(job):
             words = []
         done_blocks = min(int(job.get("done_blocks", 0)), len(blocks)) if words else 0
         tokens, model = int((job.get("ai") or {}).get("tokens", 0)), (job.get("ai") or {}).get("model")
-        if done_blocks < len(blocks):     # words past the last finished part are transcribed again
+        if done_blocks < len(blocks) and not picky:     # words past the last finished part are transcribed again
             cut = blocks[done_blocks][0] / 16000
             words = [w for w in words if w["s"] < cut]
         for c in job["clips"]:            # clips found before the restart that were not finished yet
@@ -674,14 +743,18 @@ def _run_job(job):
             def tp(p, i=i, a_=a_, b_=b_):
                 if now_on[0] == i and p - last[0] > 0.05:      # only the part being shown moves the bar
                     last[0] = p
-                    _set(job, progress=max(job["progress"], 0.14 + 0.78 * ((a_ - lo) + p * (b_ - a_)) / max(1, hi - lo)))
+                    _set(job, progress=max(job["progress"], 0.14 + 0.78 * frac(i, a_, b_, p)))
             heard[i] = ahead.submit(ctx.bind(transcribe.transcribe), audio[a_:b_], tp)
 
     for bi, (a, b) in enumerate(blocks):
         if bi < done_blocks:
             continue                      # transcribed and checked by the AI before the restart
+        if int(o["max_clips"]) - len(job["clips"]) <= 0:
+            job["done_blocks"] = bi + 1   # there are enough clips: the rest of the video is not listened to at all
+            continue
         shift = a / 16000
-        where = f" (minute {round((a - lo) / 16000 / 60)} of {round(span / 60)})" if len(blocks) > 1 else ""
+        where = (f" (part {bi + 1} of {len(blocks)}, the busiest stretches)" if picky else
+                 f" (minute {round((a - lo) / 16000 / 60)} of {round(span / 60)})" if len(blocks) > 1 else "")
         if yt:
             _set(job, stage="Reading the transcript" + where)
             bw = [dict(w, s=round(w["s"] - shift, 2), e=round(w["e"] - shift, 2)) for w in yt[0] if a / 16000 <= w["s"] < b / 16000]
@@ -691,7 +764,7 @@ def _run_job(job):
             hear(bi)
             hear(bi + 1)
             bw = heard.pop(bi).result()
-        _set(job, progress=max(job["progress"], 0.14 + 0.78 * (b - lo) / max(1, hi - lo)))
+        _set(job, progress=max(job["progress"], 0.14 + 0.78 * frac(bi, a, b, 1.0)))
         words += [dict(w, s=round(w["s"] + shift, 2), e=round(w["e"] + shift, 2)) for w in bw]
         (d / "words.json").write_text(json.dumps(words), encoding="utf-8")
         _set(job, stage="Finding the best moments" + where, word_count=len(words))
@@ -727,7 +800,7 @@ def _run_job(job):
         words.sort(key=lambda w: w["s"])
         (d / "words.json").write_text(json.dumps(words), encoding="utf-8")
     renders.shutdown()
-    ahead.shutdown(wait=False)
+    ahead.shutdown(wait=False, cancel_futures=True)       # a part nobody needed after all is not started
     fetch.shutdown(wait=True)       # a download still running in the background (nothing needed it) ends here
     _drop_source(job)
     del audio
@@ -736,6 +809,8 @@ def _run_job(job):
                  "note": "The AI was unavailable, so clips were picked by loudness only." if clips and not model else ""}
     stage = "Done" if clips else "Done, but nothing clip-worthy was found"
     _set(job, status="done", stage=stage, progress=1.0, took=round(time.time() - t0))
+    if clips:
+        _took.append(time.time() - t0)
     if clips:
         try:
             from . import plan
@@ -769,7 +844,7 @@ def _worker(quick_only=False):
         job = _jobs.get(a)
         if not job:
             if kind == "job":
-                _q.done()
+                _q.done(a)
             continue
         token = ctx._uid.set(job["user"])  # everything this job does runs as its owner
         try:
@@ -798,7 +873,7 @@ def _worker(quick_only=False):
         finally:
             ctx._uid.reset(token)
             if kind == "job":
-                _q.done()
+                _q.done(a)
 
 
 def _stopped(job):

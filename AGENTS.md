@@ -59,6 +59,11 @@ A short map for contributors and AI coding assistants.
   to upload the video (see below). There is no proxy and no paid download service.
 - **Videos are never kept.** `jobs._drop_source` deletes the downloaded video the moment its clips are cut. Making a clip
   again fetches just its own stretch (`jobs._fetch_again`). Videos come from links. The only upload is a fallback: when a link fails, the person downloads the video themselves and uploads it for that same video (pieces to `POST /api/jobs/{id}/upload`, then `/upload/finish`; `CREATIVECUT_UPLOAD_CHUNK_MB`, `CREATIVECUT_MAX_UPLOAD_MB`; deleted like any other source; `cleanup.py` removes unfinished `upload.part` files every morning at 6 IST, from inside the server, no cron needed).
+- **The line for videos** (`jobs._FairQueue`): one line per person, taken in turns. `CREATIVECUT_JOB_SHORT_RESERVED` workers are kept for
+  videos up to `CREATIVECUT_SHORT_VIDEO_MIN` minutes; a length not yet known counts as long. Waiting people see an estimate
+  (`jobs.wait_text`, from how long recent videos took). Over `CREATIVECUT_PICKY_ASR_MIN` minutes a video is not transcribed
+  whole: `brain.busy_windows` picks the loudest stretches and only those are transcribed, best first, until there are enough
+  clips. In every video, parts after the clips are found are not transcribed.
 - **Viral score**: the AI's score (`ai_score`) is blended once with the picture's score (`brain.blend`, `jobs._look`).
   `brain.NICHES` holds what to look for in each kind of video; `brain.tighten` cuts dead air off a clip's ends.
 - Comments and messages are written in plain language for people who do not program. Keep that tone.
