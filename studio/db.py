@@ -111,6 +111,18 @@ admin_log = sa.Table(                                                         # 
     sa.Column("detail", sa.String(300), nullable=False, server_default=""),
 )
 
+payments = sa.Table(                                                          # money taken through Cashfree (billing.py)
+    "payments", meta,
+    sa.Column("id", sa.String(80), primary_key=True),                         # our order id (cct_...) or Cashfree's payment id for a monthly charge
+    sa.Column("user_id", sa.String(40), sa.ForeignKey("users.id", ondelete="SET NULL"), index=True),
+    sa.Column("kind", sa.String(10), nullable=False),                         # refill | month
+    sa.Column("amount", sa.Integer, nullable=False),                          # in rupees
+    sa.Column("videos", sa.Integer, nullable=False, server_default="0"),      # what a refill gives, fixed when it was bought
+    sa.Column("status", sa.String(10), nullable=False, server_default="created"),  # created | paid | failed
+    sa.Column("created_at", sa.Float, nullable=False),
+    sa.Column("paid_at", sa.Float),
+)
+
 
 def init():
     meta.create_all(engine)

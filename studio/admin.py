@@ -6,6 +6,8 @@ change it, and no email address is special in the code. It is set by hand, on th
     python -m studio.admin list
     python -m studio.admin grant someone@example.com
     python -m studio.admin revoke someone@example.com
+    python -m studio.admin month someone@example.com    (gives 30 days of the monthly plan by hand, e.g. paid outside Cashfree)
+    python -m studio.admin refill someone@example.com   (adds one refill pack by hand)
 
 Admins see accounts and AI use. They do not see anyone's videos, clips or connected accounts."""
 import shutil
@@ -15,7 +17,7 @@ from collections import defaultdict
 
 import sqlalchemy as sa
 
-from . import config, db
+from . import config, db, plan
 
 class Refused(ValueError):
     """Something an admin asked for that is not allowed. `status` is the HTTP status to answer with."""
@@ -75,7 +77,7 @@ def overview() -> dict:
               "verified": (not verify_on) or r.id in verified, "google": bool(r.google_sub),
               "created_at": r.created_at, "last_seen": r.last_seen,
               "ai_calls": used.get(r.id, (0, 0))[0], "tokens": used.get(r.id, (0, 0))[1],
-              "videos": vids[r.id], "clips": clips[r.id]} for r in rows]
+              "videos": vids[r.id], "clips": clips[r.id], "paid_left": plan.paid_left(r.id), "subscribed": plan.subscribed(r.id)} for r in rows]
     return {
         "totals": {"users": int(n_users), "verified": sum(1 for x in users if x["verified"]),
                    "disabled": sum(1 for x in users if x["disabled"]), "admins": sum(1 for x in users if x["role"] == "admin"),
@@ -84,7 +86,7 @@ def overview() -> dict:
                    "signups_30d": sum(1 for x in users if x["created_at"] >= d30),
                    "active_7d": sum(1 for x in users if (x["last_seen"] or 0) >= d7),
                    "ai_calls": sum(v[0] for v in used.values()), "ai_calls_today": int(calls_today),
-                   "tokens": sum(v[1] for v in used.values()),
+                   "tokens": sum(v[1] for v in used.values()), "paying": sum(1 for x in users if x["subscribed"]),
                    "videos": len(all_jobs), "clips": sum(clips.values()), "recording": len(live.active()),
                    "working": sum(1 for j in all_jobs if j["status"] in ("queued", "running"))},
         "daily": list(daily.values()), "by_purpose": by_purpose, "users": users, "log": log,
@@ -162,6 +164,23 @@ def _cli(argv):
             print(f"No account with the email {argv[1]}. They need to sign up first.")
             return 1
         print(f"{argv[1]} is now {'an admin' if argv[0] == 'grant' else 'a normal user'}.")
+        return 0
+    if len(argv) == 2 and argv[0] in ("month", "refill"):
+        with db.engine.connect() as c:
+            r = c.execute(sa.select(db.users).where(db.users.c.email == argv[1].strip().lower())).first()
+        if not r:
+            print(f"No account with the email {argv[1]}. They need to sign up first.")
+            return 1
+        if argv[0] == "month":
+            until = max(float(plan.subscription(r.id).get("until") or 0), time.time()) + plan.PERIOD
+            plan.update_sub(r.id, until=until, status=plan.subscription(r.id).get("status") or "BY_HAND")
+            note = f"Gave 30 days of the monthly plan to {argv[1]}, until {time.strftime('%d %b %Y', time.localtime(until))}."
+        else:
+            plan.add_extra(r.id, config.REFILL_VIDEOS)
+            note = f"Added {config.REFILL_VIDEOS} refill videos to {argv[1]}. They are used only while subscribed."
+        with db.engine.begin() as c:
+            _log(c, r.id, argv[0], r.id, "given from the server command line")
+        print(note)
         return 0
     print(__doc__)
     return 2

@@ -61,6 +61,28 @@ Set the `CREATIVECUT_SMTP_*` lines and `CREATIVECUT_MAIL_FROM` to send password-
 SMTP service. On a public site also set `CREATIVECUT_VERIFY_EMAIL=1`, so people confirm their address before clipping.
 Without SMTP on an HTTPS site, no reset emails can be sent.
 
+## Payments (Cashfree)
+
+People get a few free videos (`CREATIVECUT_FREE_VIDEOS`, 2 by default). After that they subscribe: ₹499 a month for
+20 videos (`CREATIVECUT_PLAN_PRICE_INR`, `CREATIVECUT_PLAN_VIDEOS`), charged every month by Cashfree with UPI AutoPay or
+a card. Subscribers who run out early can buy a refill: ₹499 for 20 more videos, one payment
+(`CREATIVECUT_REFILL_PRICE_INR`, `CREATIVECUT_REFILL_VIDEOS`). It works the same way as Commently Reviews, on the same
+Cashfree account.
+
+1. Use the Cashfree account Commently already uses. Subscriptions (UPI AutoPay and card mandates) must be switched on
+   for it; Commently Reviews already needs that.
+2. Put the same keys in `.env`: `CASHFREE_ENV=production`, `CASHFREE_CLIENT_ID=...`, `CASHFREE_CLIENT_SECRET=...`.
+   To try it first, leave `CASHFREE_ENV` out and add the sandbox pair as `CASHFREE_TEST_CLIENT_ID` and
+   `CASHFREE_TEST_CLIENT_SECRET`. In the sandbox, pay with UPI `testsuccess@gocash`.
+3. In the Cashfree dashboard, add the webhook `https://<your site>/api/billing/webhook` for the Subscription events
+   and the Payment events (`PAYMENT_SUCCESS_WEBHOOK`). Set the subscription webhook version to 2025-01-01.
+4. If Cashfree asks for it, whitelist your site's domain for return links (Developers, Whitelisting).
+5. Restart: `docker compose up -d`.
+
+Someone paid you another way? Give it by hand:
+`docker compose exec app python -m studio.admin month someone@example.com` (30 days of the plan) or
+`... refill someone@example.com` (one refill). Refunds and cancelled mandates are handled in the Cashfree dashboard.
+
 ## Good to know
 
 - **Data**: everything lives in two Docker volumes, `pgdata` (accounts, AI usage) and `data` (videos, clips).

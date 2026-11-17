@@ -50,8 +50,18 @@ A short map for contributors and AI coding assistants.
   `web/theme.css`** as `--c-*` names; pages, the 3D hero, the animated background and the emails read from it, so never type a
   colour into a page. The logo files and favicon in `web/brand/` are pictures: redo them if the brand colour changes.
   `tests/test_theme.py` guards this. Shadows are soft; hover states change colour.
-- **Free plan** (`plan.py`): `CREATIVECUT_FREE_VIDEOS` finished videos per account (default 5) and `CREATIVECUT_CLIPS_PER_VIDEO`
-  clips per video (default 3). One video at a time per person; `jobs.cancel` stops one at its next step (`_set` raises `Cancelled`).
+- **Plan** (`plan.py`): `CREATIVECUT_FREE_VIDEOS` free finished videos per account (default 2), then a monthly
+  subscription: `CREATIVECUT_PLAN_PRICE_INR` (499) for `CREATIVECUT_PLAN_VIDEOS` (20) videos every 30 days, plus refills
+  (`CREATIVECUT_REFILL_*`) that never expire but work only while subscribed. `CREATIVECUT_CLIPS_PER_VIDEO` clips per video
+  (default 3). Counts live in `plan.json` in the person's folder. One video at a time per person; `jobs.cancel` stops one
+  at its next step (`_set` raises `Cancelled`).
+- **Payments** (`billing.py`): Cashfree, as in Commently Reviews: Subscriptions for the monthly plan, Orders for refills.
+  Nothing is given from what the browser or a webhook says: the state is always read back from Cashfree. Webhooks need
+  Cashfree's signature (client secret). A refill counts once (`payments` row switches to "paid"). The return page
+  `/billing/return` takes Cashfree's cross-site POST (the only route let past the origin check). The checkout script is
+  the one outside script the security policy allows (`server.CSP`). Keys: `CASHFREE_ENV`, `CASHFREE_CLIENT_ID`,
+  `CASHFREE_CLIENT_SECRET`. By hand: `python -m studio.admin month|refill <email>`. Public pages show prices through
+  `{{PRICE}}`, `{{PACK_VIDEOS}}`, `{{REFILL_PRICE}}`, `{{REFILL_VIDEOS}}`, `{{CLIPS}}`, `{{FREE}}` (`server._prices`).
 - **Space is limited per person** (`storage.py`, `CREATIVECUT_MAX_USER_MB`, 100 by default): over it, their oldest finished videos
   are deleted, never one still being made, recorded, with a post waiting, or just finished.
 - **YouTube access**: yt-dlp straight from the server. `media.ytdl_extra` adds the cookies file (a private copy) for YouTube

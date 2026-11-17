@@ -33,7 +33,7 @@ check("one video at a time", config.MAX_ACTIVE_JOBS_PER_USER, 1)
 # ---- free videos per account: only finished videos count
 plan.add_video(uid); plan.add_video(uid)
 r = c.post("/api/jobs", json={"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"}, headers=ORIGIN)
-check("after the free videos, a new one is refused with the paid-plan message", (r.status_code, "paid plan" in r.json()["detail"]), (402, True))
+check("after the free videos, a new one is refused and told to subscribe", (r.status_code, "Subscribe" in r.json()["detail"]), (402, True))
 admin = auth.get_user(uid); admin_like = type("U", (), {"is_admin": True})()
 check("an admin is never limited", plan.videos_left(uid, admin_like), None)
 check("with no limit set, nobody is limited", (setattr(config, "FREE_VIDEOS", 10 ** 7) or plan.videos_left(uid, admin)), None)
@@ -78,7 +78,7 @@ clip = j2["clips"][0]        # the same dict the server changed
 check("...and counted", (clip["remakes"], clip.get("pending_remake")), (1, True))
 clip["status"] = "done"
 r = c.post(f"/api/jobs/{j2['id']}/clips/clip01/render", json={"title": "Again"}, headers=ORIGIN)
-check("a second re-make is refused with the paid-plan message", (r.status_code, "paid plan" in r.json()["detail"]), (402, True))
+check("a second re-make is refused", (r.status_code, "re-makes" in r.json()["detail"]), (402, True))
 clip["status"] = "error"; clip["remakes"] = 1
 with ctx.as_user(uid):
     jobs.render_one(j2, clip, [])

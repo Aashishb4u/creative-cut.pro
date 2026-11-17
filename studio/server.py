@@ -12,6 +12,7 @@ import time
 from pathlib import Path
 from urllib.parse import quote, urlparse
 
+import httpx
 import sqlalchemy as sa
 import uvicorn
 from fastapi import Body, FastAPI, HTTPException, Request
@@ -20,18 +21,20 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 
 from . import admin as admins
 from . import account, load
-from . import (accounts, ai, alerts, auth, cleanup, config, creators, ctx, db, jobs, live, media, posting,
+from . import (accounts, ai, alerts, auth, billing, cleanup, config, creators, ctx, db, jobs, live, media, posting,
                plan, profiles, render, safe, storage, transcribe, usage, ytupdate)
 
 app = FastAPI(title="Creative Cut", docs_url=None, redoc_url=None, openapi_url=None)
 WEB = config.ROOT / "web"
-OPEN = ("/api/auth/", "/pub/", "/api/public", "/auth/google/", "/auth/verify", "/brand/", "/assets/", "/clips/", "/healthz", "/favicon.ico", "/robots.txt", "/sitemap.xml")
+OPEN = ("/api/auth/", "/pub/", "/api/public", "/auth/google/", "/auth/verify", "/brand/", "/assets/", "/clips/", "/healthz", "/billing/return", "/api/billing/webhook", "/favicon.ico", "/robots.txt", "/sitemap.xml")
 PAGES = {"/": "landing.html", "/login": "auth.html", "/signup": "auth.html", "/reset": "reset.html",
          "/privacy": "legal.html", "/terms": "legal.html", "/acceptable-use": "legal.html"}
-CSP = ("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-       "font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; "
-       "frame-src https://player.twitch.tv https://www.youtube-nocookie.com https://player.kick.com; "
-       "frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://accounts.google.com")
+# Cashfree: its checkout script (loaded only when someone pays) and the pages it opens. See billing.py.
+CF = "https://sdk.cashfree.com https://*.cashfree.com"
+CSP = ("default-src 'self'; script-src 'self' 'unsafe-inline' https://sdk.cashfree.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+       f"font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; media-src 'self' blob:; connect-src 'self' {CF}; "
+       f"frame-src https://player.twitch.tv https://www.youtube-nocookie.com https://player.kick.com {CF}; "
+       f"frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://accounts.google.com {CF}")
 
 
 BOOT = f"{int(time.time()) % 100000:x}"     # part of every sync token, so pages reload their data after a restart
@@ -75,7 +78,9 @@ class Gate:
 
         if method not in ("GET", "HEAD", "OPTIONS"):
             origin = req.headers.get("origin")
-            if origin and urlparse(origin).netloc != req.headers.get("host") and origin.rstrip("/") != config.PUBLIC_URL:
+            # Cashfree sends the buyer back with a form posted from its own site; that page only reads, from Cashfree itself
+            if origin and urlparse(origin).netloc != req.headers.get("host") and origin.rstrip("/") != config.PUBLIC_URL \
+                    and path != "/billing/return":
                 return await deny(403, "Cross-site requests are not allowed.")
             # Every request is a small form, and is cut off at 256 KB whatever its headers claim, so nobody can
             # fill the server's memory by posting junk (signed in or not).
@@ -275,12 +280,22 @@ def _page(name, shared=False):
 _LANDING: dict = {}
 
 
+def _prices(html: str) -> str:
+    """The price and the pack, from settings, so the public pages always match what people are charged."""
+    for k, v in {"{{PRICE}}": f"{config.PLAN_PRICE_INR:,}", "{{PACK_VIDEOS}}": str(config.PLAN_VIDEOS),
+                 "{{REFILL_PRICE}}": f"{config.REFILL_PRICE_INR:,}", "{{REFILL_VIDEOS}}": str(config.REFILL_VIDEOS),
+                 "{{CLIPS}}": str(config.CLIPS_PER_VIDEO),
+                 "{{FREE}}": str(int(min(config.FREE_VIDEOS, 10 ** 6)))}.items():
+        html = html.replace(k, v)
+    return html
+
+
 @app.get("/")
 def landing():
     f = WEB / "landing.html"
     m = f.stat().st_mtime
     if _LANDING.get("m") != m:
-        html = f.read_text(encoding="utf-8").replace("{{SITE}}", config.PUBLIC_URL)
+        html = _prices(f.read_text(encoding="utf-8").replace("{{SITE}}", config.PUBLIC_URL))
         _LANDING.update(m=m, html=html, etag='"' + hashlib.md5(html.encode()).hexdigest() + '"')
     # fresh for five minutes; after that a CDN or browser may show its copy while it quietly fetches the new one
     return HTMLResponse(_LANDING["html"], headers={"Cache-Control": "public, max-age=300, stale-while-revalidate=86400",
@@ -341,7 +356,7 @@ def legal_page(request: Request):
     for k, v in {"{{CONTACT}}": who, "{{PAGE}}": page, "{{PAGE_PATH}}": page, "{{SITE}}": _h.escape(config.PUBLIC_URL),
                  "{{NAME}}": name, "{{LAW}}": law, "{{TITLE}}": title, "{{DESC}}": desc}.items():
         out = out.replace(k, v)
-    return HTMLResponse(out, headers={"Cache-Control": "public, max-age=3600"})
+    return HTMLResponse(_prices(out), headers={"Cache-Control": "public, max-age=3600"})
 
 
 _LEGAL_HTML = ""
@@ -561,10 +576,99 @@ def _job_slots():
 
 
 def _plan_allows():
-    """A free account clips a set number of videos (CREATIVECUT_FREE_VIDEOS). After that, the paid plan."""
-    left = plan.videos_left(ctx.uid(), auth.get_user(ctx.uid()))
+    """A few free videos (CREATIVECUT_FREE_VIDEOS), then the monthly plan and refills (plan.py, billing.py)."""
+    uid = ctx.uid()
+    user = auth.get_user(uid)
+    left = plan.videos_left(uid, user)
+    if left == 0 and billing.maybe_refresh(uid):      # a monthly charge we were not told about yet
+        left = plan.videos_left(uid, user)
     if left == 0:
-        raise HTTPException(402, f"You have used your {int(config.FREE_VIDEOS)} free videos. A paid plan with more is coming soon.")
+        if plan.subscribed(uid):
+            msg = (f"You have used this month's videos. A refill gives {config.REFILL_VIDEOS} more for "
+                   f"₹{config.REFILL_PRICE_INR}, or wait for next month's.")
+        else:
+            msg = (f"You have used your {int(config.FREE_VIDEOS)} free videos. Subscribe to keep clipping: "
+                   f"₹{config.PLAN_PRICE_INR} a month gives {config.PLAN_VIDEOS} videos.")
+        raise HTTPException(402, msg)
+
+
+# ================================================================ paying (billing.py)
+def _billing(fn, *args):
+    try:
+        return fn(*args)
+    except billing.BillingError as e:
+        raise HTTPException(e.status, str(e))
+    except httpx.HTTPError:
+        raise HTTPException(503, "Could not reach the payment service. Try again in a moment.")
+
+
+def _payer():
+    uid = ctx.uid()
+    user = auth.get_user(uid)
+    if not plan.limited(user):
+        raise HTTPException(400, "Your account has no limit, so there is nothing to pay for.")
+    _throttle("pay:" + uid, 10, 600, "That's a lot of tries. Wait a few minutes, then try again.")
+    return user
+
+
+@app.post("/api/billing/subscribe")
+def billing_subscribe(body: dict = Body(...)):
+    return _billing(billing.subscribe, _payer(), str(body.get("phone") or ""))
+
+
+@app.post("/api/billing/refill")
+def billing_refill():
+    return _billing(billing.refill, _payer())
+
+
+@app.post("/api/billing/cancel")
+def billing_cancel():
+    _billing(billing.cancel, ctx.uid())
+    return {"plan": plan.info(ctx.uid(), auth.get_user(ctx.uid()))}
+
+
+@app.post("/api/billing/refresh")
+def billing_refresh():
+    _throttle("payrefresh:" + ctx.uid(), 20, 600)
+    _billing(billing.refresh, ctx.uid())
+    return {"plan": plan.info(ctx.uid(), auth.get_user(ctx.uid()))}
+
+
+@app.get("/api/billing")
+def billing_mine():
+    return {"plan": plan.info(ctx.uid(), auth.get_user(ctx.uid())), "payments": billing.history(ctx.uid())}
+
+
+@app.get("/billing/return")
+@app.post("/billing/return")
+async def billing_return(request: Request):
+    """Cashfree sends the buyer back here (GET, or a POSTed form). The state is always read from Cashfree itself."""
+    params = dict(request.query_params)
+    if request.method == "POST":
+        try:
+            params.update({k: str(v) for k, v in (await request.form()).items()})
+        except Exception:  # noqa: BLE001
+            pass
+    _throttle("payreturn:" + _ip(request), 30, 600)
+    try:
+        who = await run_in_threadpool(billing.came_back, params)
+    except (billing.BillingError, httpx.HTTPError):
+        who = None
+    return RedirectResponse("/app?billing=" + ("1" if who else "0"), 303)
+
+
+@app.post("/api/billing/webhook")
+async def billing_webhook(request: Request):
+    """Cashfree tells us about subscriptions, monthly charges and refill payments here."""
+    body = await request.body()
+    try:
+        ok = await run_in_threadpool(billing.webhook, body, request.headers.get("x-webhook-timestamp", ""),
+                                     request.headers.get("x-webhook-signature", ""))
+    except (billing.BillingError, httpx.HTTPError):
+        raise HTTPException(503, "Try again later.")             # Cashfree sends it again
+    if not ok:
+        raise HTTPException(401, "Bad signature.")
+    return {"ok": True}
 
 
 _create_lock = threading.Lock()      # "do I have a free slot?" and "take it" happen together, so bursts cannot slip past the limit
@@ -806,8 +910,8 @@ def rerender(jid: str, cid: str, body: dict = Body(...)):
     if job["status"] in ("queued", "running") or clip.get("status") in ("queued", "rendering"):
         raise HTTPException(409, "This clip is still being made. Try again when it has finished.")
     _throttle("render:" + ctx.uid(), 20, 600, "That's a lot of re-makes in a short time. Wait a few minutes.")
-    if plan.remakes_left(clip, auth.get_user(ctx.uid())) == 0:
-        raise HTTPException(402, f"This clip has been re-made {int(config.FREE_REMAKES)} time{'s' if config.FREE_REMAKES != 1 else ''}, the free limit. A paid plan with more re-makes is coming soon.")
+    if plan.remakes_left(clip, auth.get_user(ctx.uid()), ctx.uid()) == 0:
+        raise HTTPException(402, "This clip has used all its re-makes. Making a new video from the same link gives fresh clips.")
     try:
         jobs.request_render(jid, cid, body)
     except (ValueError, TypeError) as e:

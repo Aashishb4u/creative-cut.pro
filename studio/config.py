@@ -110,8 +110,15 @@ PICKY_ASR_MIN = max(0, int(float(env("CREATIVECUT_PICKY_ASR_MIN") or 60)))      
 PICKY_WINDOW_S = max(60, int(float(env("CREATIVECUT_PICKY_WINDOW_S") or 240)))         # length of each stretch picked that way, in seconds
 MAX_ACTIVE_JOBS_PER_USER = int(_limit("CREATIVECUT_MAX_JOBS_PER_USER", "1"))    # videos worked on at once: one, so the next waits for this one
 CLIPS_PER_VIDEO = max(1, int(env("CREATIVECUT_CLIPS_PER_VIDEO") or 3))         # clips made from one video (plan.py)
-FREE_VIDEOS = _limit("CREATIVECUT_FREE_VIDEOS", "5")                            # videos a free account may clip in all; 0 = no limit
+FREE_VIDEOS = _limit("CREATIVECUT_FREE_VIDEOS", "2")                            # free videos a new account may clip, once; 0 = no limit for anyone
 FREE_REMAKES = _limit("CREATIVECUT_FREE_REMAKES", "1")                          # times a free account may re-make one clip after changing it; 0 = no limit
+# The paid plan (plan.py, billing.py): a monthly Cashfree subscription that gives a number of videos every 30 days,
+# and refill packs for subscribers who run out before the month is over. Refill videos do not expire while subscribed.
+PLAN_PRICE_INR = max(1, int(env("CREATIVECUT_PLAN_PRICE_INR") or 499))          # monthly price, in rupees
+PLAN_VIDEOS = max(1, int(env("CREATIVECUT_PLAN_VIDEOS") or 20))                 # videos every 30 days on the plan
+REFILL_PRICE_INR = max(1, int(env("CREATIVECUT_REFILL_PRICE_INR") or 499))      # price of one refill pack, in rupees
+REFILL_VIDEOS = max(1, int(env("CREATIVECUT_REFILL_VIDEOS") or 20))             # videos in one refill pack
+PAID_REMAKES = _limit("CREATIVECUT_PAID_REMAKES", "3")                          # re-makes of one clip while someone has a paid pack; 0 = no limit
 MAX_LIVE_TOTAL = int(env("CREATIVECUT_MAX_LIVE") or max(4, 2 * (os.cpu_count() or 4)))   # ceiling; real load decides below it
 MAX_LIVE_PER_USER = int(_limit("CREATIVECUT_MAX_LIVE_PER_USER"))     # streams one person records at once
 MAX_DOWNLOAD_GB = float(env("CREATIVECUT_MAX_DOWNLOAD_GB", "8") or 0)        # most one video may take to download, in GB; the download stops past it. 0 = no limit
@@ -166,6 +173,25 @@ LEGAL_NAME = env("CREATIVECUT_LEGAL_NAME", "")            # the business that ru
 LEGAL_COUNTRY = env("CREATIVECUT_LEGAL_COUNTRY", "")      # whose law applies, for the terms
 # Set to 1 on a public site with email set up: password sign-ups must then confirm their address before clipping.
 VERIFY_EMAIL = env("CREATIVECUT_VERIFY_EMAIL", "0") == "1"
+
+
+def _cf(name: str) -> str:
+    """Cashfree settings may be named CREATIVECUT_CASHFREE_... or plain CASHFREE_... (as in other apps on the same account)."""
+    return (env("CREATIVECUT_" + name) or env(name) or "").strip()
+
+
+def cashfree_live() -> bool:
+    """CASHFREE_ENV=production takes real money. Anything else is Cashfree's test mode (sandbox)."""
+    return _cf("CASHFREE_ENV").lower() == "production"
+
+
+def cashfree_keys() -> tuple:
+    """(client id, client secret) from the Cashfree dashboard, Developers, API keys. In test mode the
+    CASHFREE_TEST_CLIENT_ID / _SECRET pair is used when set, so the live keys can stay in place while testing.
+    The secret also checks that webhooks really come from Cashfree. Empty: nobody can subscribe yet."""
+    if not cashfree_live() and _cf("CASHFREE_TEST_CLIENT_ID") and _cf("CASHFREE_TEST_CLIENT_SECRET"):
+        return _cf("CASHFREE_TEST_CLIENT_ID"), _cf("CASHFREE_TEST_CLIENT_SECRET")
+    return _cf("CASHFREE_CLIENT_ID"), _cf("CASHFREE_CLIENT_SECRET")
 
 
 def smtp_password() -> str:

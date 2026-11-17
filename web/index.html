@@ -681,6 +681,7 @@ dialog::backdrop{background:rgba(8,21,56,.42);animation:fadein .16s ease}
 .ai-card .ai-ic{flex:none;width:30px;height:30px;border-radius:7px;display:grid;place-items:center;background:rgba(var(--c-brand-rgb),.16);color:var(--brand)}
 .ai-card .ai-ic svg{width:18px;height:18px}
 .ai-card .ai-tx{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}
+.plan-card.out .ai-n{color:var(--brand);font-weight:700}
 .ai-card small{font-size:12px;color:var(--frame-dim);font-weight:500}
 .ai-card b{font-size:14px;font-weight:600;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ai-card .ai-n{font-size:12px;color:var(--frame-dim);white-space:nowrap;font-variant-numeric:tabular-nums}
@@ -1268,7 +1269,7 @@ function drawShell() {  const nav = (v, icon, label, extra = "") => `<button cla
   const st = S.status;
   const k = S.status.ai, sg = S.status.storage;
   const pct = sg && sg.limit_mb ? Math.min(100, Math.round(sg.used_mb / sg.limit_mb * 100)) : 0;
-  put($("#foot"), (sg && sg.limit_mb ? `<div class="store ${pct >= 90 ? "full" : ""}" title="When your space is full, your oldest videos are deleted to make room. Download the clips you want to keep."><div class="store-t"><small>Storage</small><b>${sg.used_mb} of ${sg.limit_mb} MB</b></div><i><u style="width:${pct}%"></u></i></div>` : "") + (k ? `<button class="ai-card ${S.view === "usage" ? "on" : ""}" data-act="go" data-v="usage" title="${k.ready ? `AI: ${esc(k.provider || "ready")}, ${k.today_calls || 0} calls today` : "The AI is not set up"}">
+  put($("#foot"), planCard() + (sg && sg.limit_mb ? `<div class="store ${pct >= 90 ? "full" : ""}" title="When your space is full, your oldest videos are deleted to make room. Download the clips you want to keep."><div class="store-t"><small>Storage</small><b>${sg.used_mb} of ${sg.limit_mb} MB</b></div><i><u style="width:${pct}%"></u></i></div>` : "") + (k ? `<button class="ai-card ${S.view === "usage" ? "on" : ""}" data-act="go" data-v="usage" title="${k.ready ? `AI: ${esc(k.provider || "ready")}, ${k.today_calls || 0} calls today` : "The AI is not set up"}">
       <span class="ai-ic">${ic("bolt")}</span><span class="ai-tx"><small>AI</small><b>${k.ready ? esc(k.provider || "Ready") : "Not set up"}</b></span>${k.ready ? `<span class="ai-n">${(k.today_calls || 0).toLocaleString()} today</span>` : ""}</button>` : "") +
     (S.status.user ? `<div class="me"><button class="me-btn" data-act="acctmenu" aria-haspopup="menu" aria-expanded="false">${meAvatar(S.status.user)}
       <span class="who">${S.status.accounts === false ? `<b>Settings</b><span>AI key, connected apps</span>` : `<b>${esc(S.status.user.name)}</b><span>${esc(S.status.user.email)}</span>`}</span></button>
@@ -1571,9 +1572,7 @@ async function makeClips() {
   }
   try { S.status = await api("/api/status"); } catch {}          // the free-video count may have moved since the page loaded
   const pl = S.status.plan;
-  if (pl?.videos_limit != null && pl.videos_used >= pl.videos_limit) {
-    return ask("Free videos used", `You have made clips from ${pl.videos_limit} videos, the free limit. A paid plan with more videos is coming soon.`, "Got it");
-  }
+  if (pl?.limited && pl.videos_left === 0) return offerPack(true);
   if (!canGo(A)) {
     toast(A.note || "Paste a YouTube, Twitch or Kick video link first.", "bad");
     $("#url")?.focus();
@@ -1750,14 +1749,77 @@ const remakesLeft = c => { const m = S.status?.plan?.remakes_limit; return m == 
 function remakeHint(c) {
   const left = remakesLeft(c);
   if (left == null) return "";
-  return left > 0 ? `<p class="sub">${left} free re-make left for this clip.</p>`
-                  : `<p class="sub">This clip has used its free re-make. A paid plan with more is coming soon.</p>`;
+  return left > 0 ? `<p class="sub">${left} re-make${left === 1 ? "" : "s"} left for this clip.</p>`
+                  : `<p class="sub">This clip has used all its re-makes.${S.status?.plan?.subscribed ? "" : " Subscribers get more for each clip."}</p>`;
 }
 function planHint() {
   const pl = S.status?.plan;
-  if (!pl || pl.videos_limit == null) return "";
-  const left = Math.max(0, pl.videos_limit - pl.videos_used);
-  return `<span class="hint">${left} of ${pl.videos_limit} free videos left</span>`;
+  if (!pl?.limited) return "";
+  if (pl.videos_left) return `<span class="hint">${pl.free_left && !pl.subscribed ? `${pl.free_left} of ${pl.free_videos} free videos left` : `${pl.videos_left} videos left`}</span>`;
+  return `<span class="hint">No videos left</span><button type="button" class="btn sm" data-act="buy">${pl.subscribed ? "Refill" : "Subscribe"}</button>`;
+}
+const rupees = n => "₹" + Number(n).toLocaleString("en-IN");
+const shortDay = t => new Date(t * 1000).toLocaleDateString(undefined, {day: "numeric", month: "short"});
+const planText = pl => `${rupees(pl.plan.price)} a month gives you ${pl.plan.videos} videos every month, with ${perVideo()} clips from each video.`;
+function planCard() {
+  const pl = S.status?.plan;
+  if (!pl?.limited) return "";
+  const left = pl.videos_left || 0;
+  const note = pl.subscribed ? (pl.resets ? `new month ${shortDay(pl.resets)}` : "") : pl.free_left ? "free" : "";
+  return `<button class="ai-card plan-card ${left ? "" : "out"}" data-act="buy" title="${esc(pl.subscribed ? `Refill: ${rupees(pl.refill.price)} for ${pl.refill.videos} more videos` : planText(pl))}">
+      <span class="ai-ic">${ic("film")}</span><span class="ai-tx"><small>Videos left${note ? ", " + note : ""}</small><b>${left}</b></span><span class="ai-n">${pl.subscribed ? "Refill" : "Subscribe"}</span></button>`;
+}
+/* Paying: Cashfree's own checkout (UPI AutoPay, cards) opens in this tab, then Cashfree sends the person back to
+   /billing/return, which reads the real state from Cashfree and comes back here with ?billing=1. Same as Commently. */
+let cfLoading = null;
+function cashfree(mode) {
+  if (!cfLoading) cfLoading = new Promise((res, rej) => {
+    const sc = document.createElement("script"); sc.src = "https://sdk.cashfree.com/js/v3/cashfree.js"; sc.async = true;
+    sc.onload = res; sc.onerror = () => { cfLoading = null; rej(new Error("Could not load the payment page. Check your connection and try again.")); };
+    document.head.append(sc);
+  });
+  return cfLoading.then(() => { if (!window.Cashfree) throw new Error("The payment page is unavailable right now."); return window.Cashfree({mode}); });
+}
+function askPhone(title, text, okLabel) {
+  return new Promise(res => {
+    const d = $("#formdlg");
+    d.innerHTML = `<form method="dialog" class="dlg"><h2>${esc(title)}</h2><p class="help">${esc(text)}</p>
+      <label class="f">Mobile number (for UPI AutoPay)<input id="payphone" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="14" placeholder="10-digit mobile number" required></label>
+      <div class="dlg-foot"><button class="btn" value="no" formnovalidate>Cancel</button><button class="btn primary" value="yes">${esc(okLabel)}</button></div></form>`;
+    d.onclose = () => res(d.returnValue === "yes" ? $("#payphone").value : null); d.returnValue = "no"; d.showModal();
+    setTimeout(() => $("#payphone")?.focus(), 50);
+  });
+}
+async function offerPack(empty = false) {
+  const pl = S.status?.plan;
+  if (!pl?.limited) return;
+  try {
+    if (pl.subscribed) {
+      const why = pl.month_left ? `You have ${pl.videos_left} videos left. ` : "You have used this month's videos. ";
+      const more = `A refill gives ${pl.refill.videos} more videos for ${rupees(pl.refill.price)}, one payment. Refill videos never run out while you stay subscribed.`;
+      if (!pl.can_buy) return ask("Refill", why + more + " Payments open very soon.", "Got it");
+      if (!await ask(empty ? "No videos left this month" : "Refill", why + more, `Pay ${rupees(pl.refill.price)}`)) return;
+      const r = await send("/api/billing/refill", {});
+      const out = await (await cashfree(r.mode)).checkout({paymentSessionId: r.session, redirectTarget: "_self"});
+      if (out?.error) throw new Error(out.error.message || "The payment was not completed.");
+      return;
+    }
+    const why = empty ? `You have used your ${pl.free_videos} free videos. ` : "";
+    const how = "Pay with UPI AutoPay or a card. Cashfree checks it with ₹1, which is refunded, and takes the first payment tomorrow. Cancel any time in Settings.";
+    if (!pl.can_buy) return ask(empty ? "Free videos used" : "Subscribe", `${why}${planText(pl)} Payments open very soon.`, "Got it");
+    const phone = await askPhone(empty ? "Free videos used" : "Subscribe", `${why}${planText(pl)} ${how}`, `Subscribe for ${rupees(pl.plan.price)}/month`);
+    if (phone == null) return;
+    const r = await send("/api/billing/subscribe", {phone});
+    const out = await (await cashfree(r.mode)).subscriptionsCheckout({subsSessionId: r.session, redirectTarget: "_self"});
+    if (out?.error) throw new Error(out.error.message || "The payment was not completed.");
+  } catch (e) { toast(e.message, "bad"); }
+}
+async function cancelPlan() {
+  const pl = S.status?.plan;
+  const till = pl?.until ? ` You keep your videos until ${new Date(pl.until * 1000).toLocaleDateString()}.` : "";
+  if (!await ask("Cancel subscription?", `Cashfree stops charging you every month.${till} You can subscribe again any time.`, "Cancel subscription", true)) return;
+  try { const r = await send("/api/billing/cancel", {}); S.status.plan = r.plan; toast("Subscription cancelled. Nothing more will be charged.", "ok"); drawShell(); render(); }
+  catch (e) { toast(e.message, "bad"); }
 }
 /* ---- selecting several videos and clips: delete or download them together */
 const sel = () => (S.sel = S.sel || new Set());
@@ -2055,6 +2117,10 @@ async function drawSettings() {
         <dl class="kv"><div><dt>Email</dt><dd>${esc(me.email)} ${me.verified === false ? `<span class="pill warn">Not confirmed</span>` : `<span class="pill ok">Confirmed</span>`}</dd></div>
           <div><dt>Sign-in method</dt><dd>${me.google ? `Google${me.has_password ? " and password" : ""}` : "Email and password"}</dd></div>
           <div><dt>Account type</dt><dd>${me.is_admin ? "Admin" : "Standard"}</dd></div>
+          ${S.status.plan?.limited ? (pl => `<div><dt>Plan</dt><dd>${pl.subscribed ? `Monthly, ${rupees(pl.plan.price)}${pl.cancelled ? ", cancelled" : ""}` : "Free"}</dd></div>
+          <div><dt>Videos left</dt><dd>${pl.videos_left}${pl.subscribed && pl.resets ? `, new month on ${shortDay(pl.resets)}` : ""}${pl.extra_left ? ` (${pl.extra_left} from refills)` : ""}
+            <button class="btn sm" data-act="buy">${pl.subscribed ? "Refill" : "Subscribe"}</button>
+            ${pl.subscribed && !pl.cancelled && pl.status === "ACTIVE" ? `<button class="btn sm ghost" data-act="cancelplan">Cancel subscription</button>` : ""}</dd></div>`)(S.status.plan) : ""}
           ${joined ? `<div><dt>Member since</dt><dd>${joined}</dd></div>` : ""}</dl>
         ${me.google ? `<p class="sub">Your name and picture come from your Google account.</p>` : ""}</section>`;
     }
@@ -2365,8 +2431,10 @@ document.addEventListener("click", async e => {
       return tick();
     }
     if (a === "moreclips") {
-      return ask("More clips from this video", `Free accounts get ${perVideo()} clips from each video. A paid plan with more clips is coming soon.`, "Got it");
+      return ask("More clips from this video", `Each video gives ${perVideo()} clips. To get different moments, add the video again: it uses one more video.`, "Got it");
     }
+    if (a === "buy") return offerPack();
+    if (a === "cancelplan") return cancelPlan();
     if (a === "deljob") {
       if (!await ask("Delete this video?", "The video and all of its clips are permanently deleted. This cannot be undone.", "Delete", true)) return;
       await api(`/api/jobs/${d.j}`, {method:"DELETE"}); toast("Deleted"); return tick();
@@ -2469,6 +2537,14 @@ $("#main").addEventListener("scroll", () => $(".topbar").classList.toggle("stuck
     const ok = q.get("connected"), err = q.get("connect_error"), nm = q.get("name");
     history.replaceState(null, "", location.pathname);
     setTimeout(() => ok ? toast(`${nm || ok} is connected. Pick it in a creator's Setup to post there.`, "ok") : toast(err, "bad"), 300);
+  }
+  if (q.get("billing")) {
+    history.replaceState(null, "", location.pathname);
+    try { S.status = await api("/api/status"); } catch {}
+    const pl = S.status?.plan;
+    setTimeout(() => q.get("billing") === "1" && pl?.subscribed ? toast(`Payment done. You have ${pl.videos_left} videos.`, "ok")
+      : q.get("billing") === "1" ? toast("Cashfree is still confirming your payment. Your videos appear here within a few minutes.")
+      : toast("The payment was not completed. If money did leave your account, your videos are added within a few minutes.", "bad"), 300);
   }
   if (q.get("verified")) { history.replaceState(null, "", location.pathname); setTimeout(() => toast("Email confirmed. You're ready to clip.", "ok"), 300); }
   if (q.get("verify_error")) { history.replaceState(null, "", location.pathname); setTimeout(() => toast(q.get("verify_error"), "bad"), 300); }

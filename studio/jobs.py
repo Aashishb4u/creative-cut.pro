@@ -814,7 +814,7 @@ def _run_job(job):
     if clips:
         try:
             from . import plan
-            plan.add_video(job["user"])          # one more of the free videos used (only videos that finish count)
+            plan.add_video(job["user"])          # one more video used: free first, then from their pack (only videos that finish count)
         except Exception:  # noqa: BLE001
             traceback.print_exc()
     try:

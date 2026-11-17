@@ -257,7 +257,7 @@ function drawOverview(a) {
       ${tile("users", num(t.users), "Accounts in total", `${num(t.verified)} confirmed their email, ${num(t.disabled)} disabled`)}
       ${tile("plus", num(t.signups_7d), "Signed up, last 7 days", `${num(t.signups_today)} today, ${num(t.signups_30d)} in 30 days`)}
       ${tile("clock", num(t.active_7d), "Active, last 7 days", `${num(t.admins)} admin${t.admins === 1 ? "" : "s"}`)}
-      ${tile("video", num(t.videos), "Videos processed", `${num(t.clips)} clips made`)}
+      ${tile("video", num(t.videos), "Videos processed", `${num(t.clips)} clips made, ${num(t.paying || 0)} subscribed`)}
     </div><div class="tiles">
       ${tile("bolt", num(t.ai_calls), "AI calls in total", `${num(t.ai_calls_today)} today`)}
       ${tile("chart", kfmt(t.tokens), "AI tokens used", "Counted on your own AI key")}
@@ -294,14 +294,14 @@ function drawUsers(a) {
       <span class="sub">${num(rows.length)} of ${num(a.users.length)}</span></div>
     <div class="card"><div class="scroll"><table><tr><th>Account</th><th><button data-act="sort" data-k="created_at" style="all:unset;cursor:pointer;color:${S.sort === "created_at" ? "var(--brand-deep)" : "inherit"}">Joined</button></th>
       <th><button data-act="sort" data-k="last_seen" style="all:unset;cursor:pointer;color:${S.sort === "last_seen" ? "var(--brand-deep)" : "inherit"}">Last active</button></th>
-      ${th("ai_calls", "AI calls")}${th("tokens", "AI tokens")}${th("videos", "Videos")}${th("clips", "Clips")}</tr>
+      ${th("ai_calls", "AI calls")}${th("tokens", "AI tokens")}${th("videos", "Videos")}${th("clips", "Clips")}${th("paid_left", "Paid left")}</tr>
       ${rows.map(u => `<tr class="u" data-act="user" data-id="${esc(u.id)}"><td><b>${esc(u.name || u.email.split("@")[0])}</b>
           ${u.role === "admin" ? ` <span class="pill brand">Admin</span>` : ""}${u.disabled ? ` <span class="pill bad">Disabled</span>` : ""}${u.verified ? "" : ` <span class="pill warn">Email not confirmed</span>`}
           <div class="em">${esc(u.email)}</div></td>
         <td class="sub">${esc(day(u.created_at))}</td><td class="sub">${esc(ago(u.last_seen))}</td>
         <td class="num">${num(u.ai_calls)}</td><td class="num">${esc(kfmt(u.tokens || 0))}</td>
-        <td class="num">${num(u.videos)}</td><td class="num">${num(u.clips)}</td></tr>`).join("")
-        || `<tr><td colspan="7"><div class="empty"><b>No accounts match</b>Try another search or filter.</div></td></tr>`}</table></div></div>`;
+        <td class="num">${num(u.videos)}</td><td class="num">${num(u.clips)}</td><td class="num">${u.subscribed ? `<span class="pill brand">Paid</span> ` : ""}${num(u.paid_left || 0)}</td></tr>`).join("")
+        || `<tr><td colspan="8"><div class="empty"><b>No accounts match</b>Try another search or filter.</div></td></tr>`}</table></div></div>`;
 }
 
 function drawActivity(a) {
