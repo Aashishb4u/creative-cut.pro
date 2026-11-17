@@ -28,7 +28,7 @@ app = FastAPI(title="Creative Cut", docs_url=None, redoc_url=None, openapi_url=N
 WEB = config.ROOT / "web"
 OPEN = ("/api/auth/", "/pub/", "/api/public", "/auth/google/", "/auth/verify", "/brand/", "/assets/", "/clips/", "/healthz", "/billing/return", "/api/billing/webhook", "/favicon.ico", "/robots.txt", "/sitemap.xml")
 PAGES = {"/": "landing.html", "/login": "auth.html", "/signup": "auth.html", "/reset": "reset.html",
-         "/privacy": "legal.html", "/terms": "legal.html", "/acceptable-use": "legal.html"}
+         "/privacy": "legal.html", "/terms": "legal.html", "/acceptable-use": "legal.html", "/refunds": "legal.html", "/contact": "legal.html"}
 # Cashfree: its checkout script (loaded only when someone pays) and the pages it opens. See billing.py.
 CF = "https://sdk.cashfree.com https://*.cashfree.com"
 CSP = ("default-src 'self'; script-src 'self' 'unsafe-inline' https://sdk.cashfree.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
@@ -313,7 +313,7 @@ def robots():
 def sitemap():
     day = time.strftime("%Y-%m-%d")
     pages = [("/", "1.0", "weekly"), ("/signup", "0.8", "monthly"), ("/login", "0.4", "monthly"), ("/terms", "0.3", "yearly"),
-             ("/privacy", "0.3", "yearly"), ("/acceptable-use", "0.2", "yearly")]
+             ("/privacy", "0.3", "yearly"), ("/acceptable-use", "0.2", "yearly"), ("/refunds", "0.3", "yearly"), ("/contact", "0.3", "yearly")]
     body = "".join(f"<url><loc>{config.PUBLIC_URL}{u}</loc><lastmod>{day}</lastmod><changefreq>{c}</changefreq>"
                    f"<priority>{p}</priority></url>" for u, p, c in pages)
     return Response('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
@@ -335,12 +335,16 @@ LEGAL = {
     "privacy": ("Privacy Policy", "How Creative Cut collects, uses and protects your data, including Google user data, cookies and your privacy rights."),
     "terms": ("Terms of Service", "The terms for using Creative Cut, the AI clipping tool for streams and videos: accounts, availability and liability."),
     "acceptable-use": ("Acceptable Use Policy", "What you may and may not do with Creative Cut, the AI stream clipping tool."),
+    "refunds": ("Refunds and Cancellations", "How to cancel your Creative Cut subscription and when payments are refunded."),
+    "contact": ("Contact Us", "How to reach the Creative Cut team for help, billing questions and refunds."),
 }
 
 
 @app.get("/privacy")
 @app.get("/terms")
 @app.get("/acceptable-use")
+@app.get("/refunds")
+@app.get("/contact")
 def legal_page(request: Request):
     """Public, so Google's app review (and anyone) can read them. Business name, law and contact come from settings."""
     import html as _h
@@ -352,8 +356,12 @@ def legal_page(request: Request):
     name = _h.escape(config.LEGAL_NAME or "Creative Cut")
     law = (f"the laws of {_h.escape(config.LEGAL_COUNTRY)}" if config.LEGAL_COUNTRY
            else "the laws of the country where Creative Cut's operator is established")
+    details = "".join(f"<li><b>{k}</b>: {v}</li>" for k, v in (
+        ("Email", who if contact else ""), ("Phone", _h.escape(config.CONTACT_PHONE)), ("Address", _h.escape(config.CONTACT_ADDRESS))) if v)
+    if not contact:         # no address set: still never a dead end
+        details = "<li>Use <b>Send feedback</b> in the app (account menu, bottom left) and we will reply to your account email.</li>" + details
     out = (_LEGAL_HTML or (WEB / "legal.html").read_text(encoding="utf-8"))
-    for k, v in {"{{CONTACT}}": who, "{{PAGE}}": page, "{{PAGE_PATH}}": page, "{{SITE}}": _h.escape(config.PUBLIC_URL),
+    for k, v in {"{{CONTACT_DETAILS}}": details, "{{CONTACT}}": who, "{{PAGE}}": page, "{{PAGE_PATH}}": page, "{{SITE}}": _h.escape(config.PUBLIC_URL),
                  "{{NAME}}": name, "{{LAW}}": law, "{{TITLE}}": title, "{{DESC}}": desc}.items():
         out = out.replace(k, v)
     return HTMLResponse(_prices(out), headers={"Cache-Control": "public, max-age=3600"})

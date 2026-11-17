@@ -69,6 +69,9 @@ a card. Subscribers who run out early can buy a refill: ₹499 for 20 more video
 (`CREATIVECUT_REFILL_PRICE_INR`, `CREATIVECUT_REFILL_VIDEOS`). It works the same way as Commently Reviews, on the same
 Cashfree account.
 
+0. Set `CREATIVECUT_CONTACT_EMAIL` (and, if you like, `CREATIVECUT_CONTACT_PHONE` and `CREATIVECUT_CONTACT_ADDRESS`) in `.env`.
+   Cashfree's website check wants a Contact Us page, a Terms page and a Refunds and Cancellations page; Creative Cut serves
+   them at `/contact`, `/terms` and `/refunds`, with the price and the refund rules filled in from your settings.
 1. Use the Cashfree account Commently already uses. Subscriptions (UPI AutoPay and card mandates) must be switched on
    for it; Commently Reviews already needs that.
 2. Put the same keys in `.env`: `CASHFREE_ENV=production`, `CASHFREE_CLIENT_ID=...`, `CASHFREE_CLIENT_SECRET=...`.

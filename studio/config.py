@@ -169,6 +169,8 @@ SMTP_PORT = int(env("CREATIVECUT_SMTP_PORT", "587"))
 SMTP_USER = env("CREATIVECUT_SMTP_USER", "")
 MAIL_FROM = env("CREATIVECUT_MAIL_FROM", "")
 CONTACT_EMAIL = env("CREATIVECUT_CONTACT_EMAIL", "")
+CONTACT_PHONE = env("CREATIVECUT_CONTACT_PHONE", "").strip()      # optional, shown on the Contact page
+CONTACT_ADDRESS = env("CREATIVECUT_CONTACT_ADDRESS", "").strip()  # optional: the business address, shown on the Contact page
 LEGAL_NAME = env("CREATIVECUT_LEGAL_NAME", "")            # the business that runs Creative Cut, for the legal pages
 LEGAL_COUNTRY = env("CREATIVECUT_LEGAL_COUNTRY", "")      # whose law applies, for the terms
 # Set to 1 on a public site with email set up: password sign-ups must then confirm their address before clipping.

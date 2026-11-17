@@ -21,11 +21,11 @@ header{position:sticky;top:0;background:var(--c-bg);border-bottom:1px solid var(
 .bar nav{margin-left:auto;display:flex;gap:2px;padding:3px;background:var(--muted);border-radius:10px;overflow-x:auto;max-width:100%}
 .bar nav a{font-size:14px;font-weight:600;color:var(--dim);text-decoration:none;padding:6px 12px;border-radius:8px;white-space:nowrap;transition:background-color .15s ease,color .15s ease}
 .bar nav a:hover{background:var(--c-surface-2);color:var(--text)}
-body[data-page=privacy] nav a[href="/privacy"],body[data-page=terms] nav a[href="/terms"],
-body[data-page=acceptable-use] nav a[href="/acceptable-use"]{background:var(--brand);color:#fff}
+body[data-page=privacy] nav a[href="/privacy"],body[data-page=terms] nav a[href="/terms"],body[data-page=refunds] nav a[href="/refunds"],
+body[data-page=contact] nav a[href="/contact"],body[data-page=acceptable-use] nav a[href="/acceptable-use"]{background:var(--brand);color:#fff}
 main{max-width:860px;margin:0 auto;padding:40px 20px 80px}
 article{display:none}
-body[data-page=privacy] #privacy,body[data-page=terms] #terms,body[data-page=acceptable-use] #acceptable-use{display:block}
+body[data-page=privacy] #privacy,body[data-page=terms] #terms,body[data-page=refunds] #refunds,body[data-page=contact] #contact,body[data-page=acceptable-use] #acceptable-use{display:block}
 h1{font-size:clamp(30px,4vw,40px);line-height:1.15;letter-spacing:-.03em;margin:0 0 6px;color:var(--ink)}
 .updated{color:var(--faint);font-size:14px;margin:0 0 28px}
 h2{font-size:19px;letter-spacing:-.01em;margin:34px 0 8px;color:var(--ink)}
@@ -55,7 +55,7 @@ article{animation:legalin .35s ease both}
 </head>
 <body data-page="{{PAGE}}">
 <header><div class="bar"><a href="/" aria-label="Creative Cut home"><img src="/brand/logo-light.svg" alt="Creative Cut" width="120" height="30"></a>
-  <nav aria-label="Legal pages"><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/acceptable-use">Acceptable use</a></nav></div></header>
+  <nav aria-label="Legal pages"><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/refunds">Refunds</a><a href="/contact">Contact</a><a href="/acceptable-use">Acceptable use</a></nav></div></header>
 <main>
 
 <!-- ============================================================ TERMS -->
@@ -93,7 +93,7 @@ article{animation:legalin .35s ease both}
   <li>If you run out of videos before the month is over, you can buy a refill: a one-time payment of ₹{{REFILL_PRICE}} for {{REFILL_VIDEOS}} more videos. Refill videos do not expire, but can be used only while you are subscribed.</li>
   <li>A video is used only when it finishes. Videos that fail or that you cancel are not counted.</li>
   <li>Payments are taken by our payment provider, Cashfree Payments. We do not receive or store your card, UPI or bank details.</li>
-  <li><b>Refunds.</b> If you were charged and the videos were not added, or a fault on our side stops you from using what you paid for, contact us at {{CONTACT}} within 7 days of the charge and we will fix it or refund you in full. You can also ask for a full refund of a monthly charge or a refill within 7 days of it if you have not used any video from it. Otherwise payments are not refundable. Approved refunds are sent to the original payment method within 5 to 7 working days.</li>
+  <li><b>Refunds.</b> The full refund and cancellation rules are on our <a href="/refunds">Refunds and Cancellations</a> page. In short: if you were charged and the videos were not added, or a fault on our side stops you from using what you paid for, contact us at {{CONTACT}} within 7 days of the charge and we will fix it or refund you in full. You can also ask for a full refund of a monthly charge or a refill within 7 days of it if you have not used any video from it. Otherwise payments are not refundable. Approved refunds are sent to the original payment method within 5 to 7 working days.</li>
   <li>We may change prices. A new price applies only to new subscriptions and refills bought after the change; a subscription you already have keeps its price.</li>
 </ul>
 
@@ -138,6 +138,63 @@ article{animation:legalin .35s ease both}
 
 <h2>15. Contact</h2>
 <p>{{CONTACT}}</p>
+</article>
+
+<!-- ============================================================ REFUNDS -->
+<article id="refunds">
+<h1>Refunds and Cancellations</h1>
+<p class="updated">Last updated 18 November 2026</p>
+<p>This page explains how to cancel your Creative Cut subscription and when we refund a payment. It is part of our <a href="/terms">Terms of Service</a>.</p>
+
+<h2>What you pay for</h2>
+<ul>
+  <li><b>Monthly plan:</b> ₹{{PRICE}} a month gives {{PACK_VIDEOS}} videos every month, with up to {{CLIPS}} clips from each video. It renews every month by itself until you cancel.</li>
+  <li><b>Refill:</b> a one-time payment of ₹{{REFILL_PRICE}} for {{REFILL_VIDEOS}} more videos, for when you run out before the month is over.</li>
+  <li>New accounts get {{FREE}} free videos, so you can try the service before paying anything.</li>
+</ul>
+
+<h2>How to cancel</h2>
+<ul>
+  <li>Sign in, open <b>Settings</b>, and press <b>Cancel subscription</b>. It takes effect at once and no more charges are made.</li>
+  <li>You keep the videos you already paid for until the end of the month you paid for.</li>
+  <li>If you cancel before the first monthly charge, the subscription ends immediately and nothing is charged.</li>
+  <li>You can also cancel with your bank or UPI app by removing the AutoPay mandate. Contact us if you need help.</li>
+</ul>
+
+<h2>When we refund</h2>
+<ul>
+  <li><b>Not used:</b> you can ask for a full refund of a monthly charge or a refill within 7 days of paying, if you have not used any video from it.</li>
+  <li><b>Our fault:</b> if you were charged and the videos were not added, or a fault on our side stops you from using what you paid for, contact us within 7 days of the charge and we will fix it or refund you in full.</li>
+  <li><b>Charged twice or by mistake:</b> we refund the extra charge in full.</li>
+  <li>Otherwise payments are not refundable. A video that fails or that you cancel is never counted, so it does not use up your videos.</li>
+</ul>
+
+<h2>How refunds are paid</h2>
+<p>An approved refund goes back to the original payment method (the same UPI account, card or bank account) through our payment provider, Cashfree Payments. It usually reaches you within 5 to 7 working days after we approve it.</p>
+
+<h2>How to ask for a refund</h2>
+<p>Write to us at {{CONTACT}} from the email address of your account. Tell us the date and amount of the payment. We reply within 2 working days. More ways to reach us are on the <a href="/contact">Contact page</a>.</p>
+</article>
+
+<!-- ============================================================ CONTACT -->
+<article id="contact">
+<h1>Contact Us</h1>
+<p class="updated">We read every message and reply within 2 working days.</p>
+<p>Questions about Creative Cut, your account, a payment, a refund or a problem with a video? Reach us here.</p>
+<ul>{{CONTACT_DETAILS}}</ul>
+
+<h2>Business</h2>
+<p>Creative Cut is run by {{NAME}}.</p>
+
+<h2>Before you write</h2>
+<ul>
+  <li>Use the email address of your Creative Cut account, so we can find it.</li>
+  <li>For a payment, tell us the date and amount.</li>
+  <li>For a video that failed, send the link of the video.</li>
+</ul>
+
+<h2>More</h2>
+<p>How to cancel and when we refund: <a href="/refunds">Refunds and Cancellations</a>. Our rules: <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.</p>
 </article>
 
 <!-- ============================================================ ACCEPTABLE USE -->
@@ -236,14 +293,14 @@ article{animation:legalin .35s ease both}
       <a class="fcta" href="/signup">Sign up</a></div>
     <div><h4>Product</h4><ul><li><a href="/#how">How it works</a></li><li><a href="/#features">Features</a></li><li><a href="/#live">Live clipping</a></li><li><a href="/#open">Pricing</a></li><li><a href="/#faq">FAQ</a></li></ul></div>
     <div><h4>Get started</h4><ul><li><a href="/signup">Create an account</a></li><li><a href="/login">Sign in</a></li><li><a href="/reset">Reset password</a></li></ul></div>
-    <div><h4>Legal</h4><ul><li><a href="/terms">Terms of Service</a></li><li><a href="/privacy">Privacy Policy</a></li><li><a href="/acceptable-use">Acceptable Use</a></li></ul></div>
+    <div><h4>Legal</h4><ul><li><a href="/terms">Terms of Service</a></li><li><a href="/privacy">Privacy Policy</a></li><li><a href="/refunds">Refunds and Cancellations</a></li><li><a href="/contact">Contact Us</a></li><li><a href="/acceptable-use">Acceptable Use</a></li></ul></div>
   </div>
   <div class="fbottom"><span>© <span class="fy"></span> Creative Cut</span><span>{{FREE}} videos free, then ₹{{PRICE}} a month.</span></div>
 </div></footer>
 <script>document.querySelectorAll(".fy").forEach(e => e.textContent = new Date().getFullYear());</script>
 <script>
 // switch between the three pages in place: a short fade, the address and title follow
-const TITLES = {terms: "Terms of Service", privacy: "Privacy Policy", "acceptable-use": "Acceptable Use Policy"};
+const TITLES = {terms: "Terms of Service", privacy: "Privacy Policy", refunds: "Refunds and Cancellations", contact: "Contact Us", "acceptable-use": "Acceptable Use Policy"};
 function showLegal(page, push) {
   if (!TITLES[page]) return false;
   document.body.dataset.page = page;

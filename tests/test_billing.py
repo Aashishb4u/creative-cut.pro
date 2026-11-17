@@ -7,7 +7,8 @@ os.environ["CREATIVECUT_DATA"] = tempfile.mkdtemp(prefix="pc-bill-")
 os.environ.update(DATABASE_URL="", CREATIVECUT_ACCOUNTS="1", CREATIVECUT_PUBLIC_URL="http://127.0.0.1:8765", CREATIVECUT_VERIFY_EMAIL="0",
                   CREATIVECUT_AI_KEY="", CREATIVECUT_AI_MODELS="", CREATIVECUT_FREE_VIDEOS="2", CREATIVECUT_CLIPS_PER_VIDEO="3",
                   CREATIVECUT_PLAN_PRICE_INR="499", CREATIVECUT_PLAN_VIDEOS="20", CREATIVECUT_REFILL_PRICE_INR="499",
-                  CREATIVECUT_REFILL_VIDEOS="20", CREATIVECUT_PAID_REMAKES="3")
+                  CREATIVECUT_REFILL_VIDEOS="20", CREATIVECUT_PAID_REMAKES="3",
+                  CREATIVECUT_CONTACT_EMAIL="help@example.com", CREATIVECUT_CONTACT_PHONE="+91 90000 00000", CREATIVECUT_CONTACT_ADDRESS="1 Test Road, Pune")
 for k in ("CASHFREE_ENV", "CASHFREE_CLIENT_ID", "CASHFREE_CLIENT_SECRET", "CASHFREE_TEST_CLIENT_ID", "CASHFREE_TEST_CLIENT_SECRET"):
     os.environ.pop(k, None); os.environ.pop("CREATIVECUT_" + k, None)
 sys.path.insert(0, ".")
@@ -166,6 +167,17 @@ CF["payments"][sub_c] = [{"payment_type": "CHARGE", "payment_status": "SUCCESS",
                           "payment_initiated_date": time.strftime("%Y-%m-%dT%H:%M:%S+05:30")}]
 plan.add_video(uc); plan.add_video(uc)
 check("a missed charge is found the moment it matters", (billing.maybe_refresh(uc), plan.paid_left(uc)), (True, 20))
+
+# ---- the pages a payment provider's review looks for: public, with the price and a way to reach us
+for path, words in (("/refunds", ["Refunds and Cancellations", "Cancel subscription", "₹499 a month", "₹499 for 20", "5 to 7 working days", "help@example.com"]),
+                    ("/contact", ["Contact Us", "help@example.com", "+91 90000 00000", "1 Test Road, Pune", "2 working days"]),
+                    ("/terms", ["Subscription, refills, payments and refunds", "/refunds"])):
+    r = outside.get(path)
+    check(f"{path} opens without signing in", r.status_code, 200)
+    check(f"{path} says what a reviewer looks for", [w for w in words if w not in r.text], [])
+    check(f"{path} has no empty placeholders", "{{" in r.text, False)
+check("the front page links to all of them", [h for h in ("/terms", "/refunds", "/contact", "/privacy") if f'href="{h}"' not in outside.get("/").text], [])
+check("they are in the sitemap", [h for h in ("/refunds", "/contact") if h not in outside.get("/sitemap.xml").text], [])
 
 print("\nALL PASSED" if not fails else f"\nFAILED: {', '.join(fails)}")
 db.engine.dispose()
