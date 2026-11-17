@@ -78,4 +78,7 @@ A short map for contributors and AI coding assistants.
   `CREATIVECUT_MIN_FREE_DISK_GB`, 3). One account once wrote a 116 GB file from a single link and filled the server.
 - **Viral score**: the AI's score (`ai_score`) is blended once with the picture's score (`brain.blend`, `jobs._look`).
   `brain.NICHES` holds what to look for in each kind of video; `brain.tighten` cuts dead air off a clip's ends.
+- **Search and sharing**: every public page carries the Open Graph and Twitter tags (WhatsApp, Facebook, X, LinkedIn read them), with the
+  1200x630 picture `web/brand/og.png` (keep it under 300 KB; WhatsApp drops big ones). Sign-up is indexed; sign-in, reset and `/app` are
+  not. A signed-out request for a page that does not exist is a real 404, not "sign in". `/robots.txt` and `/sitemap.xml` come from `server.py`.
 - Comments and messages are written in plain language for people who do not program. Keep that tone.

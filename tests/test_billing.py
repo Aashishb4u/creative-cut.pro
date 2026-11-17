@@ -179,6 +179,24 @@ for path, words in (("/refunds", ["Refunds and Cancellations", "Cancel subscript
 check("the front page links to all of them", [h for h in ("/terms", "/refunds", "/contact", "/privacy") if f'href="{h}"' not in outside.get("/").text], [])
 check("they are in the sitemap", [h for h in ("/refunds", "/contact") if h not in outside.get("/sitemap.xml").text], [])
 
+# ---- search and sharing (WhatsApp, Facebook, X read these tags)
+home = outside.get("/").text
+check("front page has a share image that is a real, small file", (
+    'property="og:image" content="' + BASE + '/brand/og.png"' in home, 'name="twitter:card" content="summary_large_image"' in home,
+    outside.get("/brand/og.png").headers["content-type"], 1000 < len(outside.get("/brand/og.png").content) < 300_000), (True, True, "image/png", True))
+check("the title and description are a good length", (len(home.split("<title>")[1].split("</title>")[0]) <= 62,
+      100 < len(home.split('name="description" content="')[1].split('"')[0]) <= 165), (True, True))
+check("the price in the page's data is a plain number", '"price": "499"' in home, True)
+su, li = outside.get("/signup").text, outside.get("/login").text
+check("sign-up can be found by search, sign-in cannot", ('content="index,follow"' in su, 'content="noindex,follow"' in li, "{{" in su + li), (True, True, False))
+check("each has its own title and address", ("<title>Create your" in su, 'rel="canonical" href="' + BASE + '/signup"' in su, 'rel="canonical" href="' + BASE + '/login"' in li), (True, True, True))
+check("legal pages share well too", all('og:image" content="' + BASE + '/brand/og.png"' in outside.get(x).text for x in ("/terms", "/refunds", "/contact", "/privacy")), True)
+check("sign-in is not in the sitemap", "/login" not in outside.get("/sitemap.xml").text, True)
+r = outside.get("/no-such-page", headers={"Accept": "text/html"})
+check("a page that does not exist is 404, not 'sign in'", (r.status_code, "noindex" in r.text), (404, True))
+check("the API still asks to sign in", outside.get("/api/jobs").status_code, 401)
+check("the app address still goes to sign-in", (outside.get("/app", headers={"Accept": "text/html"}).status_code, outside.get("/app", headers={"Accept": "text/html"}).headers["location"]), (303, "/login"))
+
 print("\nALL PASSED" if not fails else f"\nFAILED: {', '.join(fails)}")
 db.engine.dispose()
 sys.exit(1 if fails else 0)

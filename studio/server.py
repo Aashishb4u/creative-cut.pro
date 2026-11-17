@@ -37,6 +37,13 @@ CSP = ("default-src 'self'; script-src 'self' 'unsafe-inline' https://sdk.cashfr
        f"frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://accounts.google.com {CF}")
 
 
+NOT_FOUND = ('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">'
+             '<title>Page not found | Creative Cut</title><link rel="stylesheet" href="/assets/theme.css">'
+             '<body style="font-family:system-ui,sans-serif;background:var(--c-bg);color:var(--c-text);display:grid;place-items:center;min-height:100vh;margin:0;text-align:center">'
+             '<div><h1>Page not found</h1><p style="color:var(--c-text-dim)">That page does not exist.</p>'
+             '<p><a style="color:var(--c-brand-hi)" href="/">Go to the Creative Cut home page</a></p></div>')
+
+
 BOOT = f"{int(time.time()) % 100000:x}"     # part of every sync token, so pages reload their data after a restart
 
 
@@ -133,6 +140,9 @@ class Gate:
         if not user and not is_open:
             if path == "/app" or path.startswith("/app/"):
                 return await deny(401, "", redirect="/login")
+            if method == "GET" and not path.startswith("/api/") and "text/html" in req.headers.get("accept", ""):
+                # a web address that does not exist is "not found" (what search engines need to hear), not "sign in"
+                return await HTMLResponse(NOT_FOUND, 404, headers={"Cache-Control": "private, no-store", "X-Robots-Tag": "noindex"})(scope, receive, send)
             return await deny(401, "Please sign in.")
         if user and path in ("/login", "/signup"):
             return await deny(303, "", redirect="/app")
@@ -282,7 +292,7 @@ _LANDING: dict = {}
 
 def _prices(html: str) -> str:
     """The price and the pack, from settings, so the public pages always match what people are charged."""
-    for k, v in {"{{PRICE}}": f"{config.PLAN_PRICE_INR:,}", "{{PACK_VIDEOS}}": str(config.PLAN_VIDEOS),
+    for k, v in {"{{PRICE}}": f"{config.PLAN_PRICE_INR:,}", "{{PRICE_NUM}}": str(config.PLAN_PRICE_INR), "{{PACK_VIDEOS}}": str(config.PLAN_VIDEOS),
                  "{{REFILL_PRICE}}": f"{config.REFILL_PRICE_INR:,}", "{{REFILL_VIDEOS}}": str(config.REFILL_VIDEOS),
                  "{{CLIPS}}": str(config.CLIPS_PER_VIDEO),
                  "{{FREE}}": str(int(min(config.FREE_VIDEOS, 10 ** 6)))}.items():
@@ -312,7 +322,7 @@ def robots():
 @app.get("/sitemap.xml")
 def sitemap():
     day = time.strftime("%Y-%m-%d")
-    pages = [("/", "1.0", "weekly"), ("/signup", "0.8", "monthly"), ("/login", "0.4", "monthly"), ("/terms", "0.3", "yearly"),
+    pages = [("/", "1.0", "weekly"), ("/signup", "0.8", "monthly"), ("/terms", "0.3", "yearly"),
              ("/privacy", "0.3", "yearly"), ("/acceptable-use", "0.2", "yearly"), ("/refunds", "0.3", "yearly"), ("/contact", "0.3", "yearly")]
     body = "".join(f"<url><loc>{config.PUBLIC_URL}{u}</loc><lastmod>{day}</lastmod><changefreq>{c}</changefreq>"
                    f"<priority>{p}</priority></url>" for u, p, c in pages)
@@ -322,8 +332,17 @@ def sitemap():
 
 @app.get("/login")
 @app.get("/signup")
-def auth_page():
-    return _page("auth.html", shared=True)
+def auth_page(request: Request):
+    """Sign-up is a page for search to find; sign-in is not (a second page with the same job, nothing to search for)."""
+    signup = request.url.path == "/signup"
+    out = (WEB / "auth.html").read_text(encoding="utf-8")
+    for k, v in {"{{TITLE}}": "Create your Creative Cut account" if signup else "Sign in to Creative Cut",
+                 "{{DESC}}": ("Create a free Creative Cut account and turn your first YouTube, Twitch or Kick video into captioned vertical clips."
+                              if signup else "Sign in to your Creative Cut account."),
+                 "{{PAGE_PATH}}": "signup" if signup else "login", "{{ROBOTS}}": "index,follow" if signup else "noindex,follow",
+                 "{{SITE}}": config.PUBLIC_URL}.items():
+        out = out.replace(k, v)
+    return HTMLResponse(out, headers={"Cache-Control": "public, no-cache", "ETag": '"' + hashlib.md5(out.encode()).hexdigest() + '"'})
 
 
 @app.get("/reset")
